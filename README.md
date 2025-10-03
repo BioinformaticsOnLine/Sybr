@@ -29,7 +29,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install(c("clusterProfiler", "UpSetR", "pheatmap", "visNetwork", "enrichplot", "ComplexHeatmap", "circlize", "pathview"))
 ```
 
-#### For `EBA` (Perl dependencies)
+#### For `EBA Analysis` (Perl dependencies)
 
 EBA primarily relies on Perl core modules and its own internal libraries.
 *   **Perl Core Modules:** `strict`, `warnings`, `English`, `FileHandle`, `Getopt::Long`, `Pod::Usage`, `File::Path`, `Cwd`, `File::Find`, `File::Copy`, `File::Basename`.
