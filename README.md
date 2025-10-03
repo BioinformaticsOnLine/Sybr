@@ -198,7 +198,7 @@ We welcome contributions to Sybr! If you'd like to contribute, please read our [
 
 ## 🐛 Reporting Issues
 
-Encountered a bug or have a feature request? Please open an issue on our [GitHub Issues page](https://github.com/your-username/sybr/issues).
+Encountered a bug or have a feature request? Please open an issue on our [GitHub Issues page](https://github.com/BioinformaticsOnLine/sybr/issues).
 
 ## 📄 License
 
@@ -206,4 +206,4 @@ Sybr is released under the [LICENSE_NAME] License. See the [LICENSE](LICENSE) fi
 
 ## 💬 Contact
 
-For questions or support, please contact [your_email@example.com] or open a discussion on GitHub.
+For questions or support, please contact [BioinformaticsOnLine@gmail.com] or open a discussion on GitHub.
