@@ -1,0 +1,24 @@
+# path of a net files 
+>netdir
+/home/ajay/ajay_bhatia/snakemake/pipeline23/data
+
+# path of a chain files 
+>chaindir
+/home/ajay/ajay_bhatia/snakemake/pipeline23/data
+
+# species-name tag1 tag2
+# tag1 (0: ref-species, 1: descendents, 2: outgroup)
+# tag2 (1: chromosome assembly, 0: others)
+# Warning for tag2: Use the value 1 only when a chromosome name starts with "chr". 
+>species
+vaga 0 1
+ricciae 1 0 
+vagaN 1 0
+rotatoria 1 0
+roseola 1 1
+habrotrocha 2 1 
+
+# block resolution (bp): DO NOT CHANGE
+>resolution
+<resolutionwillbechanged>
+
