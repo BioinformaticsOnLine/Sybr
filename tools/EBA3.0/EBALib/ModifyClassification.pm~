@@ -1,0 +1,73 @@
+# $Id$ Modify Classification
+# Perl module for EBA MyLib::ModifyClassification;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+MyLib::ModifyClassification  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package MyLib::ModifyClassification;
+use strict; 
+use warnings;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "alterClassification";
+
+sub alterClassification {
+    my $fileIn = shift;
+    open my $fh, '<', $fileIn or die MyLib::Messages::failOp($fileIn);
+
+    my @restLines;
+    while (<$fh>) {
+	chomp $_; my $line=$_;
+	$line=MyLib::CommonSubs::trim($line);
+	if ($line =~ /^lineage/) { push @restLines, $line; next;}
+	if (index($_,"#") == 0) { next; } # Lines starting with a hash mark are comments
+	next if $line =~ /^\s*$/;
+	my @tmpLine=split /\=/, $line;
+	my @speciesNames=split /\,/, $tmpLine[1];
+	next if scalar(@speciesNames) == 1; ## cant use "<" sign as there is no values for lineage..
+        push @restLines, $line;
+    }
+    close $fh;
+    unlink("$fileIn");
+my $OutFile=$fileIn;
+open OUTFILE, ">" , $OutFile or die MyLib::Messages::failOp($OutFile);
+foreach my $line (@restLines) { print OUTFILE "$line\n"; }
+close OUTFILE or die MyLib::Messages::failCl("$OutFile");
+}
+
+
+1;

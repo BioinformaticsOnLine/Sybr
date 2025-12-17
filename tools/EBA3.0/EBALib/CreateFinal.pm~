@@ -1,0 +1,196 @@
+# $Id$ Create Final
+# Perl module for EBA MyLib::CreateFinal;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+MyLib::CreateFinal  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package MyLib::CreateFinal;
+#use strict;
+#use warnings;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "generateFinal";
+
+sub generateFinal {
+my $path=shift;
+my $dir="$path/EBA_OutFiles";
+MyLib::Messages::finalEBR();
+
+		 opendir(DIR, $dir) or die $!;
+   		 while (my $file = readdir(DIR)) {
+        		# We only want files
+        		next unless (-f "$dir/$file");
+        		# Use a regular expression to find files ending in .txt
+        		next unless ($file =~ m/\.eba00$/); 
+			my @new_file=split(/_/, $file);
+				if ($new_file[0] ne "") { 
+					my $InPutFile="$path/EBA_OutFiles/all_all.eba00";
+					my $OutPutFile= "$path/EBA_OutFiles/final.eba6";
+					createFinalFile($InPutFile, $OutPutFile);
+
+				}				
+		  }
+closedir(DIR);
+}
+
+sub createFinalFile {
+
+my ($InFile, $OutFile) = @_;
+
+open INFILE,  $InFile or die MyLib::Messages::failOp($InFile);
+open OUTFILE, ">" , $OutFile or die MyLib::Messages::failOp($OutFile);
+
+$|++;
+$/ = "\n";
+
+open SPSFILE, "sps.txt" or die $!;
+while (<SPSFILE>) { $l=$_; chomp $l; @t=split /,/, lc($l); $t_len = scalar (@t); }
+$ts=join("\t", @t); 
+close SPSFILE or die MyLib::Messages::failCl("sps.txt");
+
+my %HashSpeciesName;
+open SPSNAME, "species.sps" or die $!;
+while (<SPSNAME>) { my $lineName=$_; chomp $lineName; my @tmpName=split /\t/, lc($lineName); $HashSpeciesName{$tmpName[0]}=$tmpName[1]; }
+close SPSNAME or die MyLib::Messages::failCl("species.sps");
+
+print OUTFILE  "$ts\tBreakpoint\tChromosome\tBrk_Point\tScore\tNarrowest_brk\tSpecies\n";
+
+while (<INFILE>) {
+	$line=$_;
+	chomp $line;
+	if ($line=~ m/^Species/) { push (@header, $line); next;}  
+	if ($line =~ /^\s*#/) { next; }
+	push (@lines, $line);
+	@tmp=split /\t/, $line; for (@tmp) { s/^\s+//; s/\s+$//;}
+
+	$org1[0]=$tmp[0]; ##!!!!!!! changed here 
+
+	push (@org,$org1[0]);
+	push (@chr, $tmp[1]);
+	push (@brk_pt,"$tmp[2]:$org1[0]:$tmp[1]");
+	push (@decision, $tmp[3]);
+}
+
+for (@brk_pt) { s/^\s+//; s/\s+$//;} #replace one or more spaces
+for (@decision) { s/^\s+//; s/\s+$//;} #replace one or more spaces
+
+##########################
+
+foreach my $index(0..$#lines) {
+@tmp1=split /\t/, $lines[$index];
+for (@tmp1) { s/^\s+//; s/\s+$//;} #replace one or more spaces
+
+@head =split /\t/, $header[0]; for (@head) { s/^\s+//; s/\s+$//;}
+my $chromosomeInfo=$HashSpeciesName{$org[$index]}; 
+ 	if ($decision[$index] ne "Gap") {       ### Need to check properly
+		#if ( (grep/^$brk_pt[$index]$/, @done) ){} else #$searchin=present_in(\@done, \@brk_pt);
+		#if ( $searchin !=1 )
+		my $seenIn=MyLib::CommonSubs::isInList($brk_pt[$index],@done);
+		if($seenIn == 0) 
+			{ 
+			for ($columnNumber=0; $columnNumber<=$#tmp1-2; $columnNumber++) {
+				if ($columnNumber>=4) {
+					        
+					if($tmp1[$columnNumber] ne 0 ) { push (@sp,$head[$columnNumber]);}  ## to calculate the species
+						
+					@val_arr1=split /\,/,$tmp1[$columnNumber];  ## It is not necessary as I have removed the comma.!!
+  					#print "$tmp1[$columnNumber]\t";
+					for (@val_arr1)  { s/^\s+//; s/\s+$//; }#replace one or more spaces at the end of it
+  					#print OUTFILE "$tmp[$columnNumber]";`
+  					my @brkorgap=split /\=/,$tmp1[$columnNumber]; my @brkorgap2=split /\+/,$brkorgap[1];
+					if($brkorgap2[0] ne "Gap") { @val_arr01=split /\=/,$tmp1[$columnNumber];}
+  					#print "$tmp1[$columnNumber]\t";
+					for (@val_arr01)  { s/^\s+//; s/\s+$//; }#replace one or more spaces at the end of it
+	 		 			
+					foreach (@val_arr1) {
+						@val_arr2=split /\+/,$_;
+						@bg=split /\=/,$val_arr2[0];
+						if ("$bg[1]" eq "Gap"){$borg++;}
+						push (@val_score,$val_arr2[1]);
+						}
+					foreach (@val_arr01) {
+                                                @val_arr02=split /\=/,$_; 
+							
+						# next if  $val_arr02[1] =~ m/^\w+/ ;    print "$val_arr02[0]\n";     ### Need to improve .... 
+							
+                                                if ( grep( /^\d+/, @val_arr02 ) ) {  push (@val_break,$val_arr02[0]);  push (@done, "$val_arr02[0]:$head[$columnNumber]:$tmp1[1]"); } ##!!!!!!!!    change 1 to 0
+							
+						}
+					foreach (@val_break) {
+						@cor= split /\-\-/,$_;
+						push (@first_cor,$cor[0]);
+						push (@second_cor,$cor[1]);
+						}
+					for (@first_cor)  { s/^\s+//; s/\s+$//; }#replace one or more spaces 
+					for (@second_cor)  { s/^\s+//; s/\s+$//; }#replace one or more spaces
+					for (@done)  { s/^\s+//; s/\s+$//; }#replace one or more spaces
+					@done = grep(!/^$/, @done); #replace the space
+					@second_cor2 = grep(!/^$/, @second_cor); #replace the space
+  	                                @first_cor1 = grep(!/^$/, @first_cor); #replace the space
+						
+					@new_second_cor = grep{/[^0]/} @second_cor2;
+					@new_first_cor = grep{/[^0]/} @first_cor1;
+
+					@first_cor=sort {$a <=> $b} @new_first_cor; @second_cor=sort {$a <=> $b} @new_second_cor;
+	        			$nar1=$first_cor[-1]; $nar2=$second_cor[0];
+
+					$wide1=$first_cor[0]; $wide2=$second_cor[-1];
+					#print OUTFILE "@first_cor\n\n=========== \n";##--------------------------------------------------------------
+       		 			foreach (@val_score) {
+						$final_score=$final_score+$_;
+						#print "$_\n";
+						}
+					print OUTFILE "$tmp1[$columnNumber]\t";
+					}	
+					undef @val_score; undef @val_arr1; undef @var_arr2; undef@val_arr01; undef @val_arr02;
+					undef @cor; undef @first_cor; undef @second_cor; undef @bg;	
+       				}	
+				@sp=join (":",@sp);
+				print OUTFILE "$tmp1[3]\t$tmp1[1]\t$wide1--$wide2\t$final_score\t$nar1<->$nar2\t@sp\n";
+				$final_score=0;undef @sp; $nar1="";$nar2="";undef @val_break; $borg=0;$brk_is=""; 
+			}
+	}   
+  	
+}
+undef @lines,  undef @header, undef @done, undef @org, undef @chr, undef @decision, undef @brk_pt;
+close INFILE or die MyLib::Messages::failCl("$InFile");
+close OUTFILE or die MyLib::Messages::failCl("$OutFile");
+
+
+} ## Main subroutine ends here ..
+
+1;

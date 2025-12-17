@@ -1,0 +1,3 @@
+#perl EBA.pl -n 5 -d Rotifer_data/ -r Adineta_vaga -p 300 -t 20 -c classification.eba -k
+
+perl EBA.pl -n 5 -d Rotifer_data2 -r Adineta_vaga -p 300 -t 20 -c classification.eba -k

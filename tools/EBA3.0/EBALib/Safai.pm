@@ -1,0 +1,68 @@
+# $Id$ Clean Up
+# Perl module for EBA EBALib::Safai;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+EBALib::Safai  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package EBALib::Safai;
+
+use strict;
+use warnings;
+use File::Path;
+use File::Find;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "cleanUp";
+
+sub cleanUp {
+my $root_directory=shift;
+#print "Cleaning all the intermediate files\n";
+finddepth(\&wanted, $_) for $root_directory;
+
+sub wanted {
+my $directory_to_delete="EBA_OutFiles";
+	if ( -d ) { # For directory ... -f for files
+		#print "$_\n";
+	    if ($_ eq $directory_to_delete) { rmtree ( "$_" ) or die (EBALib::Messages::noDel($_)); }
+
+        }
+    }
+}
+
+1;
+
+

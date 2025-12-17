@@ -1,0 +1,86 @@
+# $Id$ Concatenate Files
+# Perl module for EBA EBALib::ConCatFile;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+EBALib::ConCatFile  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package EBALib::ConCatFile;
+use strict;
+use warnings;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "concatNsps";
+
+# It concatenate the files wothout flashing any message.
+sub concatNsps {
+local $|=1; #turn of buffering
+my $path=shift;
+my $dir="$path/EBA_OutFiles";
+my @species;
+open OUTFILE, ">", "$path/EBA_OutFiles/all_brk.eba0" or die $!; 
+open OUTFILE2, ">", "sps.txt" or die $!;
+
+opendir(DIR, $dir) or die $!;
+   	while (my $file = readdir(DIR)) {
+        # We only want files
+        next unless (-f "$dir/$file");
+        # Use a regular expression to find files ending in .eba
+        next unless ($file =~ m/\.eba$/); 
+	my @new_file=split(/_/, $file);
+		if ($new_file[0] ne "") {
+      		open(FILE, "<$path/EBA_OutFiles/$file") || (warn EBALib::Messages::failCl("$file"));
+      			while (<FILE>) {
+			print OUTFILE $_;
+			my @tmp = split/\t/, $_;
+			push @species, $tmp[2];
+      			}
+		close(FILE) or die EBALib::Messages::failCl("$file");
+		}
+	}
+	my %seen; my @uniqueSpecies = grep { ! $seen{$_}++ } @species;     ## Create a species file sps.txt at root for future use
+	my $species= join ",", @uniqueSpecies;
+	print OUTFILE2 $species;  ## Store at root
+	undef @species;
+closedir(DIR);
+close OUTFILE; close OUTFILE2;
+}
+
+1;
+
+
+
+
