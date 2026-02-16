@@ -16,6 +16,9 @@
 
 ## 🚀 Getting Started
 
+### Sample input data
+link for sample data https://figshare.com/s/49a5e76634a3683362f5
+
 ### Prerequisites
 
 Sybr integrates several powerful modules (getENRICH, EBA, DESCHRAMBLER), each with its own set of dependencies. Ensure you have the following installed:
