@@ -49,6 +49,6 @@ dependencies:
 
   # R package from jitendralab
   - jitendralab::r-syntenyplotter>=1.0.2
-  - jitendralab::syntenytracker2
+  - jitendralab::syntenytracker2>=2.0.1
   # Build tools
   - make
