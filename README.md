@@ -19,6 +19,91 @@
 ### Sample input data
 link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
+### Prerequisite
+# Environment Setup
+
+## Prerequisites: Conda Installation
+
+This project requires **Conda** to manage dependencies. If you already have Conda (Miniconda or Anaconda) installed, skip to the [next step](#next-step).
+
+---
+
+### Check if Conda is Already Installed
+
+Open a terminal and run:
+```bash
+conda --version
+```
+
+- ✅ If you see something like `conda 24.x.x` — **Conda is already installed, skip the section below.**
+- ❌ If you see `command not found` — **follow the installation steps below.**
+
+---
+
+### Install Miniconda (Only if Conda is Not Installed)
+
+<details>
+<summary>🐧 Linux</summary>
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+Follow the prompts. When asked, type `yes` to initialize Conda.  
+Then restart your terminal or run:
+```bash
+source ~/.bashrc
+```
+
+</details>
+
+<details>
+<summary>🍎 macOS</summary>
+```bash
+curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+bash Miniconda3-latest-MacOSX-x86_64.sh
+```
+
+Follow the prompts. When asked, type `yes` to initialize Conda.  
+Then restart your terminal or run:
+```bash
+source ~/.zshrc
+```
+
+</details>
+
+<details>
+<summary>🪟 Windows</summary>
+
+1. Download the installer from [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html)
+2. Run the `.exe` installer and follow the prompts.
+3. Open **Anaconda Prompt** from the Start Menu to use Conda.
+
+</details>
+
+---
+
+### Verify Installation
+
+After installation, confirm Conda is working:
+```bash
+conda --version
+conda info
+```
+
+---
+
+## Next Step
+
+Once Conda is installed, proceed with setting up the project environment:
+```bash
+conda env create -f environment.yml
+conda activate <your-env-name>
+```
+
+---
+
+> 💡 **Tip:** If you prefer a full Anaconda installation instead of Miniconda, you can download it from [https://www.anaconda.com/download](https://www.anaconda.com/download). Miniconda is recommended for most users as it is lightweight.
 ### Installation
 
 To get Sybr set up, clone the repository.
