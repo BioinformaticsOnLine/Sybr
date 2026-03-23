@@ -1,7 +1,7 @@
 # Define which pipeline stages to run
 run_stages:
   synteny_processing: true
-  eba_analysis: false
+  eba_analysis: true
   enrichment_analysis: false
   chainNet_generation: false
   Ancestor_seq_recunstruction: false
@@ -34,7 +34,7 @@ eba:
   n: 5
   d: "inputs/EBA/EBA-input"
   r: "Adineta_vaga"
-  p: 200 # M #
+  p: 300 # M #
   t: 20  # M #
   c: "inputs/EBA/classification.eba"
   k: true  # M #
