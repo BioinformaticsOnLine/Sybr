@@ -21,77 +21,7 @@ link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
 ### Prerequisites
 
-Sybr integrates several powerful modules (getENRICH, EBA, DESCHRAMBLER), each with its own set of dependencies. Ensure you have the following installed:
 
-#### For `getENRICH` (R dependencies)
-
-```R
-install.packages(c("jsonlite", "dplyr", "tidyverse", "ggplot2", "ontologyIndex", "plotly"))
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install(c("clusterProfiler", "UpSetR", "pheatmap", "visNetwork", "enrichplot", "ComplexHeatmap", "circlize", "pathview"))
-```
-
-#### For `EBA Analysis` (Perl dependencies)
-
-EBA primarily relies on Perl core modules and its own internal libraries.
-*   **Perl Core Modules:** `strict`, `warnings`, `English`, `FileHandle`, `Getopt::Long`, `Pod::Usage`, `File::Path`, `Cwd`, `File::Find`, `File::Copy`, `File::Basename`.
-*   **Perl CPAN Modules:**
-    *   `Math::Round` (install via `cpan Math::Round` or your package manager)
-    *   `List::Compare` (install via `cpan List::Compare` or your package manager)
-*   **EBA Internal Libraries:** Located in `EBALib/` and `bin/EBALib/` within the EBA tool directory.
-
-#### For `DESCHRAMBLER` (Python & Perl)
-
-DESCHRAMBLER requires a dedicated Conda environment and specific Perl modules.
-
-1.  **Conda Environment Setup:**
-    ```bash
-    conda create -n deschrambler python=3.7
-    conda activate deschrambler
-    ```
-2.  **BioPerl Installation:**
-    ```bash
-    conda install -c bioconda perl-bioperl
-    ```
-3.  **Find BioPerl Path (adjust `~/miniforge3` to your conda base path):**
-    ```bash
-    find ~/miniforge3 -name "TreeIO.pm" 2>/dev/null
-    # Example output: /home/user/miniforge3/envs/deschrambler/lib/perl5/site_perl/5.22.0/Bio/TreeIO.pm
-    ```
-4.  **Create Symbolic Link for BioPerl in DESCHRAMBLER:**
-    ```bash
-    # Navigate to your DESCHRAMBLER installation directory first
-    cd /path/to/DESCHRAMBLER_tool_directory 
-    rm -rf lib/perl/Bio
-    ln -s /home/user/miniforge3/envs/deschrambler/lib/perl5/site_perl/5.22.0/Bio lib/perl/Bio
-    ```
-    *(**Important:** Replace `/home/user/miniforge3/envs/deschrambler/lib/perl5/site_perl/5.22.0/Bio` with the actual path found in step 3, up to `/Bio`)*
-5.  **Verify BioPerl Installation:**
-    ```bash
-    perl -Ilib/perl -MBio::TreeIO -e 'print "SUCCESS: BioPerl working\n"'
-    ```
-6.  **Other DESCHRAMBLER dependencies:**
-    *   `Perl 5.22+`
-    *   `make`
-    *   `build-essential`
-
-#### Snakemake Workflow Dependencies
-
-The overall Sybr workflow relies on Snakemake and several UCSC tools, installed via Bioconda within a Python 3.11 environment.
-
-```yaml
-# Recommended conda environment for the main Sybr workflow
-python=3.11
-bioconda::ucsc-fatotwobit
-bioconda::ucsc-axtchain
-bioconda::ucsc-chainsplit
-bioconda::ucsc-fasize
-bioconda::ucsc-chainprenet
-bioconda::ucsc-chainnet
-bioconda::ucsc-netsyntenic
-bioconda::snakemake=9.9.0
-```
 **(It's highly recommended to create a dedicated `environment.yml` for this main workflow.)**
 
 ### Installation
