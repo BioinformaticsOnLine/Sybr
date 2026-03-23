@@ -21,7 +21,7 @@ link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
 ### Installation
 
-To get Sybr set up, clone the repository. After cloning, you will need to place the `getENRICH`, `EBA3.0`, and `DESCHRAMBLER` tools into your `tools/` directory as specified in the usage sections.
+To get Sybr set up, clone the repository.
 
 ```bash
 git clone https://github.com/your-username/sybr.git
