@@ -19,11 +19,6 @@
 ### Sample input data
 link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
-### Prerequisites
-
-
-**(It's highly recommended to create a dedicated `environment.yml` for this main workflow.)**
-
 ### Installation
 
 To get Sybr set up, clone the repository. After cloning, you will need to place the `getENRICH`, `EBA3.0`, and `DESCHRAMBLER` tools into your `tools/` directory as specified in the usage sections.
@@ -40,7 +35,7 @@ cd sybr
 # │   └── DESCHRAMBLER/
 # └── ... (Sybr's main files)
 ```
-**(You'll likely need to provide specific instructions or scripts on how to obtain/install `getENRICH`, `EBA3.0`, and `DESCHRAMBLER` and place them correctly, as these seem to be external tools Sybr orchestrates.)**
+
 
 ### Usage
 
