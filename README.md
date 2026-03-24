@@ -15,7 +15,7 @@
 *   **Modular Workflow:** Flexible `config.yaml` to run specific stages of the analysis.
 
 ## 🚀 Getting Started
-#### Prerequisite
+### Prerequisite
 ##### 1. Sample input data
 link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
