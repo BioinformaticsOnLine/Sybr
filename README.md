@@ -112,7 +112,10 @@ Examples:
 Note: Window sizes and step size only affect synteny_assign rules. If not specified,
       defaults are: window sizes = 100000,300000,500000 and step size = 30000.
 ```
-
+##### 2. Basic Sybr Commanda
+```bash
+./sybr.sh -c run_sybr_config.yaml -j 8
+```
 
 ## 📖 Documentation
 
