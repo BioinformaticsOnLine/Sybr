@@ -71,7 +71,7 @@ conda activate sybr
 
 ### Usage
 
-Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. Below are examples for the three main functionalities.
+The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. Below are examples for the three main functionalities.
 
 ##### 1. Find Multi-species Homologous Synteny Blocks (msHSBs) and Evolutionary Breakpoints (EBRs)  
 
@@ -92,11 +92,11 @@ run_stages:
 *   `Scaffolds.txt`: A plain text file listing the names of organisms with scaffold-level assembly.
 *   `Classification.eba`: (Describe purpose if not self-explanatory, e.g., a pre-computed classification file)
 *   `Reference name`: Specified in the `config.yaml` (e.g., `Adineta vaga`).
-*   `EBA3.0/`: The EBA tool directory, expected to be located in `sybr/tools/EBA3.0/`.
 
-**Outputs:**
+**Main Outputs:**
 *   `EBRs/`: Output directory containing identified Evolutionary Breakpoints.
 *   `msHSBs/`: Output directory containing Multi-species Homologous Synteny Blocks.
+*   `synteny_results/`: Output directory containing species alignmnet text files and synteny plots.
 
 #### 2. Perform Enrichment Analysis of EBRs and msHSBs
 
