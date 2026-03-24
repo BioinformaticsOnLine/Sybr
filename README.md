@@ -41,35 +41,6 @@ conda --version
 
 ---
 
-
-1. Download the installer from [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html)
-2. Run the `.exe` installer and follow the prompts.
-3. Open **Anaconda Prompt** from the Start Menu to use Conda.
-
-</details>
-
----
-
-### Verify Installation
-
-After installation, confirm Conda is working:
-```bash
-conda --version
-conda info
-```
-
----
-
-## Next Step
-
-Once Conda is installed, proceed with setting up the project environment:
-```bash
-conda env create -f environment.yml
-conda activate <your-env-name>
-```
-
----
-
 > 💡 **Tip:** If you prefer a full Anaconda installation instead of Miniconda, you can download it from [https://www.anaconda.com/download](https://www.anaconda.com/download). Miniconda is recommended for most users as it is lightweight.
 ### Installation
 
