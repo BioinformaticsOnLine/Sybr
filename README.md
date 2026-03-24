@@ -116,6 +116,15 @@ Note: Window sizes and step size only affect synteny_assign rules. If not specif
 ```bash
 ./sybr.sh -c run_sybr_config.yaml -j 8
 ```
+or
+```bash
+./sybr.sh -j 8
+```
+##### 3. Custom window-sizes Sybr Commands
+```bash
+./sybr.sh -w 200000,400000,500000 -j 8
+```
+
 
 ## 📖 Documentation
 
