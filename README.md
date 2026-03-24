@@ -67,14 +67,13 @@ conda env create -f install_sybr_dependence.yml
 ```bash
 conda activate sybr
 ```
-
-
+---
 
 ### Usage
 
-Sybr's workflow is controlled via a `config.yaml` file, allowing you to selectively run different analysis stages. Below are examples for the three main functionalities.
+Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. Below are examples for the three main functionalities.
 
-#### 1. Find Evolutionary Breakpoints (EBRs) and Multi-species Homologous Synteny Blocks (msHSBs)
+##### 1. Find Multi-species Homologous Synteny Blocks (msHSBs) and Evolutionary Breakpoints (EBRs)  
 
 This stage leverages `EBA3.0` to identify genomic rearrangements and conserved syntenic regions.
 
