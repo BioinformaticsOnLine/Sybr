@@ -63,6 +63,11 @@ Install all required dependencies by creating the Conda environment from the pro
 ```bash
 conda env create -f install_sybr_dependence.yml
 ```
+##### 5. Activate Conda Environmanet
+```bash
+conda activate sybr
+```
+
 
 
 ### Usage
