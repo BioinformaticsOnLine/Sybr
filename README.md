@@ -15,11 +15,11 @@
 *   **Modular Workflow:** Flexible `config.yaml` to run specific stages of the analysis.
 
 ## 🚀 Getting Started
-### Prerequisite
-#### Sample input data
+#### Prerequisite
+##### 1. Sample input data
 link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
-#### Conda Installation
+##### 2. Conda Installation
 
 This project requires **Conda** to manage dependencies. If you already have Conda (Miniconda or Anaconda) installed, skip to this.
 
