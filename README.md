@@ -47,16 +47,16 @@ To get Sybr set up, clone the repository.
 
 ```bash
 git clone https://github.com/your-username/sybr.git
-cd sybr
-
-# Ensure sub-tools are placed in the 'tools/' directory:
-# sybr/
-# ├── tools/
-# │   ├── getENRICH/
-# │   ├── EBA3.0/
-# │   └── DESCHRAMBLER/
-# └── ... (Sybr's main files)
 ```
+give permissions to all files and folders inside Sybr
+```bash
+chmod -R 777 Sybr
+```
+then change directory to Sybr
+```bash
+cd Sybr
+```
+
 
 
 ### Usage
