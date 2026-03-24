@@ -16,17 +16,12 @@
 
 ## 🚀 Getting Started
 ### Prerequisite
-### Sample input data
+#### Sample input data
 link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
-
-# Environment Setup
-
-## Prerequisites: Conda Installation
+#### Conda Installation
 
 This project requires **Conda** to manage dependencies. If you already have Conda (Miniconda or Anaconda) installed, skip to the [next step](#next-step).
-
-### Installing Conda (if not already installed)
 
 If Conda is not installed on your system, follow this step-by-step guide for Ubuntu:
 
