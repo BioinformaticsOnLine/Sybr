@@ -1,7 +1,7 @@
 # Define which pipeline stages to run
 run_stages:
   synteny_processing: true
-  eba_analysis: true
+  eba_analysis: false
   enrichment_analysis: false
   chainNet_generation: false
   Ancestor_seq_recunstruction: false
