@@ -21,7 +21,7 @@ link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
 #### Conda Installation
 
-This project requires **Conda** to manage dependencies. If you already have Conda (Miniconda or Anaconda) installed, skip to the [next step](#next-step).
+This project requires **Conda** to manage dependencies. If you already have Conda (Miniconda or Anaconda) installed, skip to this.
 
 If Conda is not installed on your system, follow this step-by-step guide for Ubuntu:
 
@@ -29,15 +29,15 @@ If Conda is not installed on your system, follow this step-by-step guide for Ubu
 
 ---
 
-### Check if Conda is Already Installed
+##### Check if Conda is Already Installed
 
 Open a terminal and run:
 ```bash
 conda --version
 ```
 
-- ✅ If you see something like `conda 24.x.x` — **Conda is already installed, skip the section below.**
-- ❌ If you see `command not found` — **follow the installation steps below.**
+-  If you see something like `conda 24.x.x` — **Conda is already installed, skip the section below.**
+-  If you see `command not found` — **follow the installation steps below.**
 
 ---
 
