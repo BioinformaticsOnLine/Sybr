@@ -74,6 +74,7 @@ conda activate sybr
 The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
 ##### 1. Config Setting for Sybr
+- In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module
 ```bash
 cat run_sybr_config.yaml 
 # Define which pipeline stages to run
@@ -142,7 +143,7 @@ deschrambler:
 
 ```
 
-##### 1. Sybr help command to explor all the options
+##### 2. Sybr help command to explor all the options
 ```bash
 ./sybr.sh -h
 
@@ -181,7 +182,7 @@ Examples:
 Note: Window sizes and step size only affect synteny_assign rules. If not specified,
       defaults are: window sizes = 100000,300000,500000 and step size = 30000.
 ```
-##### 2. Basic Sybr Commanda
+##### 3. Basic Sybr Commanda
 ```bash
 ./sybr.sh -c run_sybr_config.yaml -j 8
 ```
@@ -189,7 +190,7 @@ or
 ```bash
 ./sybr.sh -j 8
 ```
-##### 3. Custom window-sizes Sybr Commands
+##### 4. Custom window-sizes Sybr Commands
 ```bash
 ./sybr.sh -w 200000,400000,500000 -j 8
 ```
