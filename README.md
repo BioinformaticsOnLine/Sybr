@@ -42,22 +42,24 @@ conda --version
 ---
 
 ### Installation
-
-To get Sybr set up, clone the repository.
+##### 1. Clone the Repository
+Clone the project from GitHub using the following command:
 
 ```bash
 git clone https://github.com/your-username/sybr.git
 ```
-give permissions to all files and folders inside Sybr
+##### 2. Set File Permissions
+Grant the necessary permissions to all files and directories:
 ```bash
 chmod -R 777 Sybr
 ```
-then change directory to Sybr
+##### 3. Navigate to Project Directory
+Move into the project folder:
 ```bash
 cd Sybr
 ```
-#### Set conda environment for Sybr
-to install all the dependancies for Sybr, install install_sybr_dependence.yml file 
+##### 4. Create Conda Environment
+Install all required dependencies by creating the Conda environment from the provided YAML file:
 ```bash
 conda env create -f install_sybr_dependence.yml
 ```
