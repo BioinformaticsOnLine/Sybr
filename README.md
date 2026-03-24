@@ -41,40 +41,6 @@ conda --version
 
 ---
 
-### Install Miniconda (Only if Conda is Not Installed)
-
-<details>
-<summary>🐧 Linux</summary>
-```bash
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh
-```
-
-Follow the prompts. When asked, type `yes` to initialize Conda.  
-Then restart your terminal or run:
-```bash
-source ~/.bashrc
-```
-
-</details>
-
-<details>
-<summary>🍎 macOS</summary>
-```bash
-curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-bash Miniconda3-latest-MacOSX-x86_64.sh
-```
-
-Follow the prompts. When asked, type `yes` to initialize Conda.  
-Then restart your terminal or run:
-```bash
-source ~/.zshrc
-```
-
-</details>
-
-<details>
-<summary>🪟 Windows</summary>
 
 1. Download the installer from [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html)
 2. Run the `.exe` installer and follow the prompts.
