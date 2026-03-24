@@ -15,16 +15,22 @@
 *   **Modular Workflow:** Flexible `config.yaml` to run specific stages of the analysis.
 
 ## 🚀 Getting Started
-
+### Prerequisite
 ### Sample input data
 link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
-### Prerequisite
+
 # Environment Setup
 
 ## Prerequisites: Conda Installation
 
 This project requires **Conda** to manage dependencies. If you already have Conda (Miniconda or Anaconda) installed, skip to the [next step](#next-step).
+
+### Installing Conda (if not already installed)
+
+If Conda is not installed on your system, follow this step-by-step guide for Ubuntu:
+
+👉 https://medium.com/@mustafa_kamal/a-step-by-step-guide-to-installing-conda-in-ubuntu-and-creating-an-environment-d4e49a73fc46
 
 ---
 
