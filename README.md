@@ -41,7 +41,6 @@ conda --version
 
 ---
 
-> 💡 **Tip:** If you prefer a full Anaconda installation instead of Miniconda, you can download it from [https://www.anaconda.com/download](https://www.anaconda.com/download). Miniconda is recommended for most users as it is lightweight.
 ### Installation
 
 To get Sybr set up, clone the repository.
