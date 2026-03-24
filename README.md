@@ -56,7 +56,11 @@ then change directory to Sybr
 ```bash
 cd Sybr
 ```
-
+#### Set conda environment for Sybr
+to install all the dependancies for Sybr, install install_sybr_dependence.yml file 
+```bash
+conda env create -f install_sybr_dependence.yml
+```
 
 
 ### Usage
