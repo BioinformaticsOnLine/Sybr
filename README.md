@@ -75,6 +75,7 @@ The link for sample data given above. To use this sample data, downloa this data
 
 ##### 1. Config Setting for Sybr
 - In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module
+- 
 ```bash
 cat run_sybr_config.yaml 
 # Define which pipeline stages to run
