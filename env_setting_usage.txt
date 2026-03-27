@@ -1,3 +1,0 @@
-conda env create -f install_sybr_dependence.yml
-
-install.packages("syntenyPlotteR")

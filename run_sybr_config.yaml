@@ -34,7 +34,7 @@ eba:
   n: 5
   d: "inputs/EBA/EBA-input"
   r: "Adineta_vaga"
-  p: 200 # M #
+  p: 300 # M #
   t: 20  # M #
   c: "inputs/EBA/classification.eba"
   k: true  # M #

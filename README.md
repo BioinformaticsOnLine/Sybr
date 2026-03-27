@@ -15,181 +15,187 @@
 *   **Modular Workflow:** Flexible `config.yaml` to run specific stages of the analysis.
 
 ## 🚀 Getting Started
-
-### Sample input data
+### Prerequisite
+##### 1. Sample input data
 link for sample data https://figshare.com/s/49a5e76634a3683362f5
 
-### Prerequisites
+##### 2. Conda Installation
 
-Sybr integrates several powerful modules (getENRICH, EBA, DESCHRAMBLER), each with its own set of dependencies. Ensure you have the following installed:
+This project requires **Conda** to manage dependencies. If you already have Conda (Miniconda or Anaconda) installed, skip to this.
 
-#### For `getENRICH` (R dependencies)
+If Conda is not installed on your system, follow this step-by-step guide for Ubuntu:
 
-```R
-install.packages(c("jsonlite", "dplyr", "tidyverse", "ggplot2", "ontologyIndex", "plotly"))
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install(c("clusterProfiler", "UpSetR", "pheatmap", "visNetwork", "enrichplot", "ComplexHeatmap", "circlize", "pathview"))
+👉 https://medium.com/@mustafa_kamal/a-step-by-step-guide-to-installing-conda-in-ubuntu-and-creating-an-environment-d4e49a73fc46
+
+---
+
+##### Check if Conda is Already Installed
+
+Open a terminal and run:
+```bash
+conda --version
 ```
 
-#### For `EBA Analysis` (Perl dependencies)
+-  If you see something like `conda 24.x.x` — **Conda is already installed, skip the section below.**
+-  If you see `command not found` — **follow the installation steps below.**
 
-EBA primarily relies on Perl core modules and its own internal libraries.
-*   **Perl Core Modules:** `strict`, `warnings`, `English`, `FileHandle`, `Getopt::Long`, `Pod::Usage`, `File::Path`, `Cwd`, `File::Find`, `File::Copy`, `File::Basename`.
-*   **Perl CPAN Modules:**
-    *   `Math::Round` (install via `cpan Math::Round` or your package manager)
-    *   `List::Compare` (install via `cpan List::Compare` or your package manager)
-*   **EBA Internal Libraries:** Located in `EBALib/` and `bin/EBALib/` within the EBA tool directory.
-
-#### For `DESCHRAMBLER` (Python & Perl)
-
-DESCHRAMBLER requires a dedicated Conda environment and specific Perl modules.
-
-1.  **Conda Environment Setup:**
-    ```bash
-    conda create -n deschrambler python=3.7
-    conda activate deschrambler
-    ```
-2.  **BioPerl Installation:**
-    ```bash
-    conda install -c bioconda perl-bioperl
-    ```
-3.  **Find BioPerl Path (adjust `~/miniforge3` to your conda base path):**
-    ```bash
-    find ~/miniforge3 -name "TreeIO.pm" 2>/dev/null
-    # Example output: /home/user/miniforge3/envs/deschrambler/lib/perl5/site_perl/5.22.0/Bio/TreeIO.pm
-    ```
-4.  **Create Symbolic Link for BioPerl in DESCHRAMBLER:**
-    ```bash
-    # Navigate to your DESCHRAMBLER installation directory first
-    cd /path/to/DESCHRAMBLER_tool_directory 
-    rm -rf lib/perl/Bio
-    ln -s /home/user/miniforge3/envs/deschrambler/lib/perl5/site_perl/5.22.0/Bio lib/perl/Bio
-    ```
-    *(**Important:** Replace `/home/user/miniforge3/envs/deschrambler/lib/perl5/site_perl/5.22.0/Bio` with the actual path found in step 3, up to `/Bio`)*
-5.  **Verify BioPerl Installation:**
-    ```bash
-    perl -Ilib/perl -MBio::TreeIO -e 'print "SUCCESS: BioPerl working\n"'
-    ```
-6.  **Other DESCHRAMBLER dependencies:**
-    *   `Perl 5.22+`
-    *   `make`
-    *   `build-essential`
-
-#### Snakemake Workflow Dependencies
-
-The overall Sybr workflow relies on Snakemake and several UCSC tools, installed via Bioconda within a Python 3.11 environment.
-
-```yaml
-# Recommended conda environment for the main Sybr workflow
-python=3.11
-bioconda::ucsc-fatotwobit
-bioconda::ucsc-axtchain
-bioconda::ucsc-chainsplit
-bioconda::ucsc-fasize
-bioconda::ucsc-chainprenet
-bioconda::ucsc-chainnet
-bioconda::ucsc-netsyntenic
-bioconda::snakemake=9.9.0
-```
-**(It's highly recommended to create a dedicated `environment.yml` for this main workflow.)**
+---
 
 ### Installation
-
-To get Sybr set up, clone the repository. After cloning, you will need to place the `getENRICH`, `EBA3.0`, and `DESCHRAMBLER` tools into your `tools/` directory as specified in the usage sections.
+##### 1. Clone the Repository
+Clone the project from GitHub using the following command:
 
 ```bash
 git clone https://github.com/your-username/sybr.git
-cd sybr
-
-# Ensure sub-tools are placed in the 'tools/' directory:
-# sybr/
-# ├── tools/
-# │   ├── getENRICH/
-# │   ├── EBA3.0/
-# │   └── DESCHRAMBLER/
-# └── ... (Sybr's main files)
 ```
-**(You'll likely need to provide specific instructions or scripts on how to obtain/install `getENRICH`, `EBA3.0`, and `DESCHRAMBLER` and place them correctly, as these seem to be external tools Sybr orchestrates.)**
+##### 2. Set File Permissions
+Grant the necessary permissions to all files and directories:
+```bash
+chmod -R 777 Sybr
+```
+##### 3. Navigate to Project Directory
+Move into the project folder:
+```bash
+cd Sybr
+```
+##### 4. Create Conda Environment
+Install all required dependencies by creating the Conda environment from the provided YAML file:
+```bash
+conda env create -f install_sybr_dependence.yml
+```
+##### 5. Activate Conda Environmanet
+```bash
+conda activate sybr
+```
+---
 
 ### Usage
 
-Sybr's workflow is controlled via a `config.yaml` file, allowing you to selectively run different analysis stages. Below are examples for the three main functionalities.
+The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
-#### 1. Find Evolutionary Breakpoints (EBRs) and Multi-species Homologous Synteny Blocks (msHSBs)
-
-This stage leverages `EBA3.0` to identify genomic rearrangements and conserved syntenic regions.
-
-**`config.yaml` configuration:**
-```yaml
+##### 1. Config Setting for Sybr
+- In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module
+- 
+```bash
+cat run_sybr_config.yaml 
+# Define which pipeline stages to run
 run_stages:
   synteny_processing: true
   eba_analysis: true
   enrichment_analysis: false
-  alignment_processing: false
-  deschrambler: false
+  chainNet_generation: false
+  Ancestor_seq_recunstruction: false
+
+#must
+scripts: "script_base"
+
+#synteny processing
+satsuma_alignments: "inputs/Satsuma_alignments"
+sequence_lengths_file: "inputs/seq2/all_sequence_lengths.txt"
+synteny_results: "outputs/synteny_results"
+reference_name: "Adineta_vaga"
+out_final: "pre-EBA1"
+
+#eba analysis
+eba_format:
+  pre_EBA_dir: "outputs/pre-EBA"         
+  scaffolds_file: "inputs/Scaffolds.txt"   ## ALL_CHROMOSOMES ## inputs/Scaffolds.txt
+  eba_input_dir: "inputs/EBA/EBA-input" 
+  mshsbs_dir: "outputs/msHSBs" 
+  ebrs_dir: "outputs/EBRs"              
+  copy_destination_dir: "outputs/EBA_results"
+  chr_size_file: "inputs/EBA/chr_size.txt"
+eba_tools:
+  eba_script_path: "tools/EBA3.0/EBA.pl"   # M #
+
+#eba_threads: 5
+
+eba:
+  n: 5
+  d: "inputs/EBA/EBA-input"
+  r: "Adineta_vaga"
+  p: 300 # M #
+  t: 20  # M #
+  c: "inputs/EBA/classification.eba"
+  k: true  # M #
+
+#enrichment analysis
+enrichment:
+  annotation_file: "inputs/getENRICH_input/protein_annotation.tsv"  # # add the options for model organism KEGG code  
+  kegg_file: "inputs/getENRICH_input/3kegg_annotationTOgenes.txt"   
+  msHSBs_dir: "outputs/msHSBs"
+
+getenrich:
+  r: "ko"    # # add the option for model organism KEGG code
+
+#alignment processing
+reference_species: vaga
+
+chainNet:   
+  seq_dir: "inputs/seq"  # # add the ref_dir also 
+  lastZ_alignments: "inputs/LastZ_alignments"      
+  output_dir: "outputs/DESCHRAMBLER_results"  
+
+#deschrambler
+deschrambler:
+  pipeline_tool_dir: "tools/DESCHRAMBLER"  # M #
+  tree_file: "inputs/tree.txt"  
+  species_file: "inputs/species_info.txt"
+
 ```
 
-**Inputs:**
-*   `alignments/`: Directory containing alignment files generated by the `SatsumaSynteny2` tool.
-*   `Scaffolds.txt`: A plain text file listing the names of organisms with scaffold-level assembly.
-*   `Classification.eba`: (Describe purpose if not self-explanatory, e.g., a pre-computed classification file)
-*   `Reference name`: Specified in the `config.yaml` (e.g., `Adineta vaga`).
-*   `EBA3.0/`: The EBA tool directory, expected to be located in `sybr/tools/EBA3.0/`.
+##### 2. Sybr help command to explor all the options
+```bash
+./sybr.sh -h
 
-**Outputs:**
-*   `EBRs/`: Output directory containing identified Evolutionary Breakpoints.
-*   `msHSBs/`: Output directory containing Multi-species Homologous Synteny Blocks.
 
-#### 2. Perform Enrichment Analysis of EBRs and msHSBs
+┏━┓╻ ╻┏┓ ┏━┓
+┗━┓┗┳┛┣┻┓┣┳┛
+┗━┛ ╹ ┗━┛╹┗╸
+============
 
-This stage uses `getENRICH` to functionally characterize the genomic regions identified in the previous step.
+========================================
+    Snakemake Pipeline
+========================================
 
-**`config.yaml` configuration:**
-```yaml
-run_stages:
-  synteny_processing: true
-  eba_analysis: true
-  enrichment_analysis: true
-  alignment_processing: false
-  deschrambler: false
+Usage: ./sybr.sh [OPTIONS]
+
+Options:
+  -c, --config FILE      Configuration file (default: run_sybr_config.yaml)
+  -j, --cores N          Number of cores (default: all available)
+  -t, --target RULE      Target rule (default: all)
+  -l, --log FILE         Log output to file
+  -u, --unlock           Unlock working directory
+  -n, --dry-run          Dry run (simulate pipeline)
+  -k, --keep-going       Keep going on independent job failures
+  -v, --verbose          Verbose Snakemake output
+  -s, --skip-validation  Skip input validation
+  -w, --window-sizes     Comma-separated window sizes in bp (e.g., 100000,300000,500000)
+  -p, --step-size        Step size in bp for synteny assignment (default: 30000)
+  -h, --help             Show this help
+
+Examples:
+  ./sybr.sh -c config.yaml -j 8                         # Run with default settings
+  ./sybr.sh --window-sizes 200000,400000 --step-size 50000  # Custom window sizes and step size
+  ./sybr.sh --window-sizes 100000                        # Single window size
+  ./sybr.sh --step-size 25000                           # Custom step size with default windows
+
+Note: Window sizes and step size only affect synteny_assign rules. If not specified,
+      defaults are: window sizes = 100000,300000,500000 and step size = 30000.
+```
+##### 3. Basic Sybr Commanda
+```bash
+./sybr.sh -c run_sybr_config.yaml -j 8
+```
+or
+```bash
+./sybr.sh -j 8
+```
+##### 4. Custom window-sizes Sybr Commands
+```bash
+./sybr.sh -w 200000,400000,500000 -j 8
 ```
 
-**Inputs:**
-*   `alignments/`: (Same as above)
-*   `Scaffolds.txt`: (Same as above)
-*   `Classification.eba`: (Same as above)
-*   `Reference name`: Specified in the `config.yaml` (e.g., `Adineta vaga`).
-*   `getENRICH_input/`: Directory containing KEGG and NCBI annotation files required by `getENRICH`.
-*   `getENRICH/`: The getENRICH tool directory, expected to be located in `sybr/tools/getENRICH/`.
-
-**Outputs:**
-*   `EBRs/`: Output directory with enrichment analysis results for EBRs.
-*   `msHSBs/`: Output directory with enrichment analysis results for msHSBs.
-
-#### 3. Run DESCHRAMBLER for Ancestral Reconstruction
-
-This stage utilizes `DESCHRAMBLER` to perform ancestral genome reconstruction.
-
-**`config.yaml` configuration:**
-```yaml
-run_stages:
-  synteny_processing: false
-  eba_analysis: false
-  enrichment_analysis: false
-  alignment_processing: true
-  deschrambler: true
-```
-
-**Inputs:**
-*   `alignments2/`: Directory containing alignment files generated by the `LastZ` tool.
-*   `DESCHRAMBLER-inputs/`: Directory containing `config.SFs`, `params.txt`, and `tree.txt` for DESCHRAMBLER.
-*   `reference/`: Fasta file of the reference genome.
-*   `seq/`: Directory containing fasta files of query genomes.
-*   `DESCHRAMBLER/`: The DESCHRAMBLER tool directory, expected to be located in `sybr/tools/DESCHRAMBLER/`.
-
-**Outputs:**
-*   `APCFs.300K/`: Output directory containing ancestral reconstruction results.
 
 ## 📖 Documentation
 

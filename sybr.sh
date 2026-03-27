@@ -52,8 +52,18 @@ NC='\033[0m'
 #######################################
 # Defaults
 #######################################
+get_cpu_count() {
+    if command -v nproc > /dev/null; then
+        nproc
+    elif command -v sysctl > /dev/null; then
+        sysctl -n hw.ncpu
+    else
+        echo 1
+    fi
+}
+
 CONFIG_FILE="run_sybr_config.yaml"
-CORES=$(nproc)
+CORES=$(get_cpu_count)
 TARGET="all"
 LOG_FILE=""
 UNLOCK=false
@@ -129,13 +139,7 @@ EOF
 #######################################
 # Argument parsing
 #######################################
-PARSED_ARGS=$(getopt -o c:j:t:l:unksvw:p:h \
-  --long config:,cores:,target:,log:,unlock,dry-run,keep-going,skip-validation,verbose,window-sizes:,step-size:,help \
-  -n "$0" -- "$@")
-
-eval set -- "$PARSED_ARGS"
-
-while true; do
+while [[ $# -gt 0 ]]; do
     case "$1" in
         -c|--config) CONFIG_FILE="$2"; shift 2 ;;
         -j|--cores) CORES="$2"; shift 2 ;;
@@ -158,7 +162,13 @@ while true; do
             ;;
         -h|--help) usage ;;
         --) shift; break ;;
-        *) log_error "Invalid argument"; usage ;;
+        -*) log_error "Invalid argument: $1"; usage ;;
+        *) 
+            # Capture positional arguments as targets if needed, 
+            # though the script seems to prefer -t.
+            # For now, just break or handle as error.
+            log_error "Unsupported positional argument: $1"; usage
+            ;;
     esac
 done
 
