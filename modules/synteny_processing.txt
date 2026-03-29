@@ -689,8 +689,7 @@ def create_synteny_assign_rules():
         # We'll use a pattern-based approach with checkpoints instead
         pass
 
-
-
+# Actually, let's use a simpler approach with a single rule that uses wildcards for window size
 if should_run_rule("synteny_processing"):
     rule synteny_assign:
         input:
@@ -703,30 +702,38 @@ if should_run_rule("synteny_processing"):
             window_size = lambda wildcards: int(wildcards.window_size),
             step_size = STEP_SIZE,
             output_dir = lambda wildcards, output: os.path.abspath(os.path.dirname(output[0])),
-            log_file = lambda wildcards, output: os.path.abspath(
-                os.path.join(os.path.dirname(output[0]), "logs", "synteny_assign.log")
-            )
-
+            log_file = lambda wildcards, output: os.path.abspath(os.path.join(os.path.dirname(output[0]), "logs", "synteny_assign.log"))
+        conda:
+            "envs/syntenytracker.yaml"  # Path to your conda environment file
         log:
             "{synteny_results}/synteny_out/{window_size}/{sample}_out/logs/synteny_assign.log"
         shell:
-            r"""
-            set -euo pipefail
-
-            # STAGE 1: SETUP
+            """
+            # STAGE 1: SETUP - Use absolute paths everywhere
             TARGET_DIR="{params.output_dir}"
             LOG_DIR="$(dirname "{params.log_file}")"
             INPUT_FILE="{input.st_input}"
-
-            mkdir -p "$LOG_DIR"
-            mkdir -p "$TARGET_DIR"
-
-            # STAGE 2: COPY INPUT
-            cp "$INPUT_FILE" "$TARGET_DIR/"
-
-            # STAGE 3: RUN TOOL
-            cd "$TARGET_DIR"
-
+            
+            # Create directories with verbose error checking
+            if ! mkdir -p "$LOG_DIR"; then
+                echo "FATAL: Failed to create log directory: $LOG_DIR" >&2
+                exit 1
+            fi
+            if ! mkdir -p "$TARGET_DIR"; then
+                echo "FATAL: Failed to create target directory: $TARGET_DIR" >&2
+                exit 1
+            fi
+            
+            # STAGE 2: FILE OPERATIONS - Copy input file to output directory
+            # Note: syntenytracker2 expects the input file to be in the current directory or provided with path
+            if ! cp "$INPUT_FILE" "$TARGET_DIR/"; then
+                echo "FATAL: Failed to copy input file to target directory" >&2
+                exit 1
+            fi
+            
+            # STAGE 3: EXECUTION with syntenytracker2
+            # The tool expects: syntenytracker2 <ref_name> <tar_name> <block_size> <distBnMrks> <infile>
+            cd "$TARGET_DIR" && \
             if ! syntenytracker2 {params.ref_name} {params.sample_name} {params.window_size} {params.step_size} st_input > "{params.log_file}" 2>&1; then
                 echo "----------------------------------------" >&2
                 echo "SYNTENY ASSIGNMENT FAILURE DETAILS" >&2
@@ -735,38 +742,26 @@ if should_run_rule("synteny_processing"):
                 echo "Last 10 lines of log:" >&2
                 tail -n 10 "{params.log_file}" >&2
                 echo "----------------------------------------" >&2
-
-                # 🔴 SAFE COPY EVEN ON FAILURE
-                BLOCK_FILE=$(find "$TARGET_DIR/jobs" -type f -name blocks_info 2>/dev/null | head -n 1 || true)
-                if [ -n "$BLOCK_FILE" ]; then
-                    cp "$BLOCK_FILE" "$TARGET_DIR/blocks_info"
-                    echo "Recovered blocks_info after failure" >&2
-                else
-                    echo "No blocks_info found after failure" >&2
-                fi
-
                 exit 1
             fi
-
-            # STAGE 4: EXTRACT blocks_info (SUCCESS PATH)
-            BLOCK_FILE=$(find "$TARGET_DIR/jobs" -type f -name blocks_info 2>/dev/null | head -n 1 || true)
-
-            if [ -n "$BLOCK_FILE" ]; then
-                cp "$BLOCK_FILE" "$TARGET_DIR/blocks_info"
-                echo "blocks_info copied to $TARGET_DIR" >> "{params.log_file}"
+            
+            # STAGE 4: VERIFICATION - Check if syntenytracker2 created expected output
+            # Note: syntenytracker2 creates output in <output_dir>/out/blocks_info by default
+            # Adjust this check based on what files syntenytracker2 actually produces
+            if [ -f "$TARGET_DIR/out/blocks_info" ]; then
+                echo "SyntenyTracker2 completed successfully" >> "{params.log_file}"
             else
-                echo "WARNING: blocks_info not found after successful run" >&2
-                find "$TARGET_DIR/jobs" >&2
+                echo "WARNING: Expected output file not found. Check if syntenytracker2 ran correctly." >&2
+            fi
+            
+            # Create done file to mark completion
+            if [ ! -f "$TARGET_DIR/synteny_assign_done" ]; then
+                touch "$TARGET_DIR/synteny_assign_done"
             fi
 
-            # STAGE 5: CREATE DONE FILE
-            touch "{output.done_file}"
-
-            echo -e "\033[32;1m✔\033[0m \033[33;1mCompleted\033[0m synteny tracking of \033[36;1m{wildcards.sample}\033[0m in {params.window_size} resolution" >&2
+            echo -e "\\033[32;1m✔\\033[0m \\033[33;1mCompleted\\033[0m synteny tracking of \\033[36;1m{wildcards.sample}\\033[0m in {params.window_size} resolution" >&2
             """
- 
 
-   
 
 
 

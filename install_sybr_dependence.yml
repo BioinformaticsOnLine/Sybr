@@ -1,9 +1,8 @@
 name: sybr
 channels:
-  - jitendralab        # add this
+  - jitendralab
   - conda-forge
   - bioconda
-  - jitendralab
   - defaults
 
 dependencies:
@@ -20,7 +19,7 @@ dependencies:
   - ucsc-chainnet
   - ucsc-netsyntenic
 
-  # R base (slightly older but well-supported)
+  # R base
   - r-base=4.3.*
 
   # CRAN R packages
@@ -33,8 +32,6 @@ dependencies:
   - r-upsetr
   - r-visnetwork
   - r-circlize
-
-  # CRAN R packages (via bioconda)
   - r-pheatmap
 
   # Bioconductor packages
@@ -48,6 +45,10 @@ dependencies:
   - perl-math-round
   - perl-list-compare
   - perl-bioperl
+  - perl-array-utils   # <-- added (Array::Utils)
+
+  # Bioinformatics tools
+  - seqkit             # <-- added
 
   # R packages from jitendralab
   - jitendralab::r-syntenyplotter>=1.0.2

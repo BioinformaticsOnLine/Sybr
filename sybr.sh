@@ -63,6 +63,7 @@ get_cpu_count() {
 }
 
 CONFIG_FILE="run_sybr_config.yaml"
+PATHS_FILE="pipeline_paths.yaml"
 CORES=$(get_cpu_count)
 TARGET="all"
 LOG_FILE=""
@@ -111,6 +112,7 @@ Usage: $0 [OPTIONS]
 
 Options:
   -c, --config FILE      Configuration file (default: run_sybr_config.yaml)
+  -P, --paths FILE       Static paths file (default: pipeline_paths.yaml)
   -j, --cores N          Number of cores (default: all available)
   -t, --target RULE      Target rule (default: all)
   -l, --log FILE         Log output to file
@@ -142,6 +144,7 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -c|--config) CONFIG_FILE="$2"; shift 2 ;;
+        -P|--paths) PATHS_FILE="$2"; shift 2 ;;
         -j|--cores) CORES="$2"; shift 2 ;;
         -t|--target) TARGET="$2"; shift 2 ;;
         -l|--log) LOG_FILE="$2"; shift 2 ;;
@@ -176,6 +179,7 @@ done
 # Validation
 #######################################
 [ -f "$CONFIG_FILE" ] || { log_error "Config file not found: $CONFIG_FILE"; exit 1; }
+[ -f "$PATHS_FILE"  ] || { log_error "Paths file not found: $PATHS_FILE"; exit 1; }
 [[ "$CORES" =~ ^[0-9]+$ && "$CORES" -gt 0 ]] || { log_error "Invalid core count"; exit 1; }
 
 # Validate window sizes if provided
@@ -222,27 +226,30 @@ fi
 # Get script base directory from config
 #######################################
 get_script_base() {
-    local config_file="$1"
-    
-    # Try to extract scripts path from config
+    # Merge both config files (paths file first, user config overrides)
     if command -v python3 &> /dev/null; then
-        local script_base=$(python3 -c "
-import yaml, sys
-try:
-    with open('$config_file', 'r') as f:
-        config = yaml.safe_load(f)
-    scripts = config.get('scripts', 'script_base')
-    # Handle relative paths
-    import os
-    if not os.path.isabs(scripts):
-        scripts = os.path.join(os.path.dirname('$config_file'), scripts)
-    print(scripts)
-except Exception as e:
-    print('script_base')
-")
+        local script_base
+        script_base=$(python3 - "$PATHS_FILE" "$CONFIG_FILE" <<'PYEOF2'
+import yaml, sys, os
+
+def load(path):
+    try:
+        with open(path, "r") as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+config = load(sys.argv[1])   # pipeline_paths.yaml
+config.update(load(sys.argv[2]))  # run_sybr_config.yaml  (wins on conflict)
+
+scripts = config.get("scripts", "script_base")
+if not os.path.isabs(scripts):
+    scripts = os.path.join(os.getcwd(), scripts)
+print(scripts)
+PYEOF2
+)
         echo "$script_base"
     else
-        # Fallback to default
         echo "script_base"
     fi
 }
@@ -273,41 +280,106 @@ EOF
 }
 
 #######################################
+# Merge both YAML configs into one temp file
+#######################################
+merge_configs() {
+    python3 - "$PATHS_FILE" "$CONFIG_FILE" <<'PYEOF2'
+import yaml, sys, os, tempfile
+
+def load(path):
+    try:
+        with open(path, "r") as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+def deep_merge(base, override):
+    """Merge override into base; sub-dicts are merged key-by-key."""
+    result = dict(base)
+    for k, v in override.items():
+        if isinstance(v, dict) and isinstance(result.get(k), dict):
+            result[k] = {**result[k], **v}
+        else:
+            result[k] = v
+    return result
+
+def rebase_paths(cfg, in_base, out_base):
+    """Replace inputs/ and outputs/ prefixes with the configured base dirs."""
+    if isinstance(cfg, dict):
+        return {k: rebase_paths(v, in_base, out_base) for k, v in cfg.items()}
+    if isinstance(cfg, list):
+        return [rebase_paths(v, in_base, out_base) for v in cfg]
+    if isinstance(cfg, str) and not os.path.isabs(cfg):
+        if cfg.startswith("inputs/") or cfg == "inputs":
+            return os.path.join(in_base, cfg[len("inputs/"):])
+        if cfg.startswith("outputs/") or cfg == "outputs":
+            return os.path.join(out_base, cfg[len("outputs/"):])
+    return cfg
+
+# pipeline_paths.yaml is the base; run_sybr_config.yaml wins on conflict
+config = deep_merge(load(sys.argv[1]), load(sys.argv[2]))
+
+# Apply base_input_dir / base_output_dir if set
+in_base  = config.get("base_input_dir",  "inputs")
+out_base = config.get("base_output_dir", "outputs")
+if in_base != "inputs" or out_base != "outputs":
+    config = rebase_paths(config, in_base, out_base)
+
+tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml",
+                                   prefix="sybr_merged_", delete=False)
+yaml.dump(config, tmp)
+tmp.close()
+print(tmp.name)
+PYEOF2
+}
+
+#######################################
 # Input Validation Function
 #######################################
 validate_inputs() {
     log_info "Validating input files..."
-    
+
     # Check if Python is available
     if ! command -v python3 &> /dev/null; then
         log_warning "python3 not found, skipping validation"
         return 0
     fi
-    
-    # Get script_base directory from config
-    SCRIPT_BASE=$(get_script_base "$CONFIG_FILE")
-    
+
+    # Merge both configs into a single temp file that validate script can read
+    MERGED_CONFIG=$(merge_configs)
+    if [ -z "$MERGED_CONFIG" ] || [ ! -f "$MERGED_CONFIG" ]; then
+        log_warning "Could not merge config files, skipping validation"
+        return 0
+    fi
+
+    # Get script_base directory from merged configs
+    SCRIPT_BASE=$(get_script_base)
+
     # Check if script_base directory exists
     if [ ! -d "$SCRIPT_BASE" ]; then
         log_warning "Script base directory not found: $SCRIPT_BASE"
         log_warning "Skipping validation."
+        rm -f "$MERGED_CONFIG"
         return 0
     fi
-    
+
     # Check for validation script in script_base
     VALIDATION_SCRIPT="$SCRIPT_BASE/validate_satsuma_files.py"
     if [ ! -f "$VALIDATION_SCRIPT" ]; then
         log_warning "Validation script not found: $VALIDATION_SCRIPT"
         log_warning "Skipping validation. Please ensure validate_satsuma_files.py is in $SCRIPT_BASE"
+        rm -f "$MERGED_CONFIG"
         return 0
     fi
-    
-    # Run validation from script_base directory
-    if python3 "$VALIDATION_SCRIPT" --config "$CONFIG_FILE" --verbose; then
+
+    # Run validation against the single merged config file
+    if python3 "$VALIDATION_SCRIPT" --config "$MERGED_CONFIG" --verbose; then
         log_success "Input validation passed"
+        rm -f "$MERGED_CONFIG"
         return 0
     else
         log_error "Input validation failed"
+        rm -f "$MERGED_CONFIG"
         if [ "$KEEP_GOING" = false ]; then
             log_error "Use --skip-validation to bypass validation or fix input files"
             exit 1
@@ -350,7 +422,7 @@ stop_spinner() {
 # Build Snakemake command (array-safe)
 #######################################
 build_snakemake_cmd() {
-    CMD=(snakemake --configfile "$CONFIG_FILE" -j "$CORES")
+    CMD=(snakemake --configfile "$PATHS_FILE" --configfile "$CONFIG_FILE" -j "$CORES" --rerun-incomplete)
 
     # Add parameters file if custom resolutions were specified
     if [ "$CUSTOM_RESOLUTIONS" = true ]; then
@@ -382,7 +454,7 @@ main() {
     
     if $UNLOCK; then
         log_info "Unlocking working directory..."
-        snakemake --configfile "$CONFIG_FILE" --unlock || true
+        snakemake --configfile "$PATHS_FILE" --configfile "$CONFIG_FILE" --unlock || true
         echo
     fi
 
@@ -393,22 +465,22 @@ main() {
     ###################################
     # Run Snakemake
     ###################################
+    # Temp file captures all snakemake output so we can show it on failure
+    SNAKEMAKE_LOG=$(mktemp /tmp/sybr_snakemake_XXXX.log)
+    trap "rm -f \"$SNAKEMAKE_LOG\" /tmp/snakemake_pid_$$" EXIT
+
     set +e
-    # Run snakemake and capture its PID
     "${CMD[@]}" > >(
-        while IFS= read -r line; do
+        tee "$SNAKEMAKE_LOG" | while IFS= read -r line; do
             if [[ "$line" == *Completed* ]]; then
                 printf "\n${GREEN}✔ %s${NC}\n" "$line"
             fi
         done
     ) 2>&1 &
-    
+
     SNAKEMAKE_PID=$!
-    
-    # Store the PID in a file so cleanup can find it even if script is killed
     echo "$SNAKEMAKE_PID" > /tmp/snakemake_pid_$$
-    trap "rm -f /tmp/snakemake_pid_$$" EXIT
-    
+
     start_spinner
     wait "$SNAKEMAKE_PID"
     exit_status=$?
@@ -423,7 +495,10 @@ main() {
     if [ "$exit_status" -eq 0 ]; then
         log_success "Pipeline completed successfully in ${duration}s"
     else
-        log_error "Pipeline failed after ${duration}s"
+        log_error "Pipeline failed after ${duration}s — Snakemake output:"
+        echo "────────────────────────────────────────────────" >&2
+        cat "$SNAKEMAKE_LOG" >&2
+        echo "────────────────────────────────────────────────" >&2
         exit 1
     fi
 }
