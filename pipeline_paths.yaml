@@ -8,22 +8,22 @@
 scripts: "script_base"
 
 # ── Synteny processing ───────────────────────────────────────────────────────
-satsuma_alignments:       "inputs/Satsuma_alignments"
-sequence_lengths_file:    "inputs/all_sequence_lengths.txt"
-synteny_results:          "outputs/synteny_results"
+satsuma_alignments:       "inputs/synteny_processing/Satsuma_alignments"
+sequence_lengths_file:    "inputs/synteny_processing/all_sequence_lengths.txt"
+synteny_results:          "outputs/synteny_processing"
 
 # ── Output folder name for pre-EBA synteny ──
-out_final: "pre-EBA1"
+out_final: "synteny_plots"
 
 # ── EBA analysis — paths ─────────────────────────────────────────────────────
 eba_format:
-  pre_EBA_dir:        "outputs/pre-EBA"
-  scaffolds_file:     "inputs/Scaffolds.txt"   # use ALL_CHROMOSOMES to include everything
-  eba_input_dir:      "inputs/EBA/EBA-input"
-  mshsbs_dir:         "outputs/msHSBs"
-  ebrs_dir:           "outputs/EBRs"
-  copy_destination_dir: "outputs/EBA_results"
-  chr_size_file:      "inputs/EBA/chr_size.txt"
+  pre_EBA_dir:        "outputs/eba_analysis/pre-EBA"
+  scaffolds_file:     "inputs/synteny_processing/Scaffolds.txt"   # use ALL_CHROMOSOMES to include everything
+  eba_input_dir:      "inputs/eba_analysis/EBA-input"
+  mshsbs_dir:         "outputs/eba_analysis/msHSBs"
+  ebrs_dir:           "outputs/eba_analysis/EBRs"
+  copy_destination_dir: "outputs/eba_analysis/EBA_results"
+  chr_size_file:      "inputs/eba_analysis/chr_size.txt"
 
 # ── EBA tool paths ────────────────────────────────────────────────────────────
 eba_tools:
@@ -31,26 +31,26 @@ eba_tools:
 
 # ── EBA static parameters (paths + fixed run params) ─────────────────────
 eba:
-  d: "inputs/EBA/EBA-input"
+  d: "inputs/eba_analysis/EBA-input"
   t: 20
-  c: "inputs/EBA/classification.eba"
+  c: "inputs/eba_analysis/classification.eba"
   k: true
   # n, r, p come from run_sybr_config.yaml and are deep-merged by config_handling.smk
 
 # ── Enrichment analysis — paths ───────────────────────────────────────────────
 enrichment:
-  annotation_file: "inputs/getENRICH_input/protein_annotation.tsv"
-  kegg_file:       "inputs/getENRICH_input/3kegg_annotationTOgenes.txt"
-  msHSBs_dir:      "outputs/msHSBs"
+  annotation_file: "inputs/enrichment_analysis/protein_annotation.tsv"
+  kegg_file:       "inputs/enrichment_analysis/3kegg_annotationTOgenes.txt"
+  msHSBs_dir:      "outputs/eba_analysis/msHSBs"
 
 # ── Alignment processing / chainNet ──────────────────────────────────────────
 chainNet:
-  seq_dir:           "inputs/seq"
-  lastZ_alignments:  "inputs/LastZ_alignments"
-  output_dir:        "outputs/DESCHRAMBLER_results"
+  seq_dir:           "inputs/Ancestor_seq_recunstruction/seq"
+  lastZ_alignments:  "inputs/Ancestor_seq_recunstruction/LastZ_alignments"
+  output_dir:        "outputs/Ancestor_seq_recunstruction"
 
 # ── DESCHRAMBLER ─────────────────────────────────────────────────────────────
 deschrambler:
   pipeline_tool_dir: "tools/DESCHRAMBLER"
-  tree_file:         "inputs/tree.txt"
-  species_file:      "inputs/species_info.txt"
+  tree_file:         "inputs/Ancestor_seq_recunstruction/tree.txt"
+  species_file:      "inputs/Ancestor_seq_recunstruction/species_info.txt"

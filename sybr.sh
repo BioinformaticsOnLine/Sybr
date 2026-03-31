@@ -15,27 +15,67 @@ cleanup() {
     
     # Kill snakemake and all its children
     if [[ -n "${SNAKEMAKE_PID:-}" ]]; then
-        # Kill the entire process tree
-        pkill -P "$SNAKEMAKE_PID" 2>/dev/null || true
-        kill "$SNAKEMAKE_PID" 2>/dev/null || true
+        # Kill the entire process group
+        # Get the process group ID
+        PGID=$(ps -o pgid= -p "$SNAKEMAKE_PID" 2>/dev/null | grep -o '[0-9]*' || true)
         
-        # Give processes a moment to terminate gracefully
-        sleep 0.5
+        if [[ -n "$PGID" ]]; then
+            # Kill the entire process group (negative PGID kills the whole group)
+            kill -TERM -"$PGID" 2>/dev/null || true
+            sleep 1
+            # Force kill if still running
+            kill -KILL -"$PGID" 2>/dev/null || true
+        else
+            # Fallback: kill the process and its children
+            kill -TERM "$SNAKEMAKE_PID" 2>/dev/null || true
+            sleep 1
+            kill -KILL "$SNAKEMAKE_PID" 2>/dev/null || true
+        fi
         
-        # Force kill any remaining processes from this pipeline
+        # Additional cleanup: find and kill any remaining snakemake-related processes
         pkill -f "snakemake" 2>/dev/null || true
         
         # Kill perl processes from this pipeline
         pkill -f "synteny_assign_v3_80_genes.pl" 2>/dev/null || true
         
+        # Kill any satsuma processes
+        pkill -f "Satsuma" 2>/dev/null || true
+        
+        # Kill any python processes running pipeline scripts
+        pkill -f "validate_satsuma_files.py" 2>/dev/null || true
+        
         # Kill any bash processes running our pipeline commands
         pkill -f "/usr/bin/bash -c set -euo pipefail" 2>/dev/null || true
+        
+        # Kill any processes in the current session that might be orphaned
+        pkill -s 0 -f "snakemake" 2>/dev/null || true
     fi
 
+    # Remove temporary files
+    rm -f /tmp/snakemake_pid_$$ 2>/dev/null || true
+    rm -f /tmp/sybr_snakemake_*.log 2>/dev/null || true
+    rm -f /tmp/sybr_merged_*.yaml 2>/dev/null || true
+    rm -f synteny_params.yaml 2>/dev/null || true
+    
+    # Restore cursor
     tput cnorm >&2
+    
+    # Exit with interrupt code
     exit 130
 }
 trap cleanup INT TERM
+
+#######################################
+# Cleanup on normal exit
+#######################################
+normal_exit_cleanup() {
+    # Remove temporary files on normal exit
+    rm -f /tmp/snakemake_pid_$$ 2>/dev/null || true
+    rm -f /tmp/sybr_snakemake_*.log 2>/dev/null || true
+    rm -f /tmp/sybr_merged_*.yaml 2>/dev/null || true
+    rm -f synteny_params.yaml 2>/dev/null || true
+}
+trap normal_exit_cleanup EXIT
 
 #######################################
 # Color codes (non-bold)
@@ -467,10 +507,11 @@ main() {
     ###################################
     # Temp file captures all snakemake output so we can show it on failure
     SNAKEMAKE_LOG=$(mktemp /tmp/sybr_snakemake_XXXX.log)
-    trap "rm -f \"$SNAKEMAKE_LOG\" /tmp/snakemake_pid_$$" EXIT
+    # Don't set trap EXIT here - we have a global trap
 
     set +e
-    "${CMD[@]}" > >(
+    # Run snakemake in a process group so we can kill the whole group later
+    setsid "${CMD[@]}" > >(
         tee "$SNAKEMAKE_LOG" | while IFS= read -r line; do
             if [[ "$line" == *Completed* ]]; then
                 printf "\n${GREEN}✔ %s${NC}\n" "$line"

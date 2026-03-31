@@ -10,10 +10,10 @@ base_output_dir: "/home/ajay/ajay_bhatia/lab1/my_PhD/tool_dev/sybr/sybr_dev/test
 # ── Pipeline stages to run ──────────────────
 run_stages:
   synteny_processing: true
-  eba_analysis: false
-  enrichment_analysis: false
-  chainNet_generation: false
-  Ancestor_seq_recunstruction: false
+  eba_analysis: true
+  enrichment_analysis: true
+  chainNet_generation: true
+  Ancestor_seq_recunstruction: true
 
 # ── Species / reference names ───────────────
 reference_name: "Adineta_vaga"
