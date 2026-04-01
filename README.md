@@ -74,7 +74,7 @@ conda activate sybr
 The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
 
-##### Input Folder Structure
+##### 1. Input Folder Structure
 ```
 inputs/
 │
@@ -113,7 +113,7 @@ inputs/
 
 ##### Input Files format
 
-#### `LastZ_alignments/*.axt`
+###### `LastZ_alignments/*.axt`
 Run LastZ with these recommended parameters for non-vertebrate species:
 ```bash
 lastz reference.fa[multiple] query.fa \
@@ -123,11 +123,11 @@ lastz reference.fa[multiple] query.fa \
 Use the **HoxD55** scoring matrix for distant/non-vertebrate comparisons.  
 The stem of each `.axt` filename (without extension) **must match** the names used in `seq/`, `species_info.txt`, and `tree.txt`.
 
-#### `seq/*.fa`
+###### `seq/*.fa`
 Standard FASTA format. Accepts `.fa`, `.fasta`, `.fna`.  
 Both query and reference genomes must be present.
 
-#### `species_info.txt`
+###### `species_info.txt`
 Three space/tab-separated fields per line, no header:
 
 | Field | Values | Meaning |
@@ -136,26 +136,28 @@ Three space/tab-separated fields per line, no header:
 | Role | `0` / `1` / `2` | `0` = reference · `1` = descendant · `2` = outgroup |
 | Assembly level | `1` / `0` | `1` = chromosome-scale · `0` = scaffold-level |
 
-#### `tree.txt`
+###### `tree.txt`
 Newick format, single line. Must start with `(` and end with `;`.
 
-#### `chr_size.txt`
+###### `chr_size.txt`
 Two-column TSV: `chromosome_name  size_bp`. Reference species only. Integer sizes.
 
-#### `all_sequence_lengths.txt`
+###### `all_sequence_lengths.txt`
 Three-column TSV: `sequence_name  length_bp  species`. All sequences from all genomes.  
 Use the included `genome_length_maker.sh` script to generate this file.
 
-#### `Satsuma_alignments/*.txt`
+###### `Satsuma_alignments/*.txt`
 Eight-column TSV output from Satsuma, no header:
 `query_chr  q_start  q_end  ref_chr  r_start  r_end  score  strand`  
 Strand must be `+` or `-`.
 
 
-
-##### 1. Config Setting for Sybr
-- In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module
-- 
+---
+##### 2. Config Setting for Sybr
+- In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module. 
+- Use need to provide path fro base_input_dir ( path of structured input folder) and base_output_dir (path of output folder.
+- In reference_species provide the species name only.
+- for r: in getenrich provide ko if kegg annotation file availble, of KEGG Organism code available the provide organism code. for details check documentation.
 ```bash
 # ─────────────────────────────────────────────
 #  run_sybr_config.yaml  —  User-facing config
@@ -190,7 +192,7 @@ getenrich:
 
 ```
 
-##### 2. Sybr help command to explor all the options
+##### 3. Sybr help command to explor all the options
 ```bash
 ./sybr.sh -h
 
@@ -229,7 +231,7 @@ Examples:
 Note: Window sizes and step size only affect synteny_assign rules. If not specified,
       defaults are: window sizes = 100000,300000,500000 and step size = 30000.
 ```
-##### 3. Basic Sybr Commanda
+##### 4. Basic Sybr Commanda
 ```bash
 ./sybr.sh -c run_sybr_config.yaml -j 8
 ```
@@ -237,7 +239,7 @@ or
 ```bash
 ./sybr.sh -j 8
 ```
-##### 4. Custom window-sizes Sybr Commands
+##### 5. Custom window-sizes Sybr Commands
 ```bash
 ./sybr.sh -w 200000,400000,500000 -j 8
 ```
