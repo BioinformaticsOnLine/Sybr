@@ -74,7 +74,87 @@ conda activate sybr
 The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
 ##### 1. Input Folder Structure
-- the inputs folder has a fixed structure. for every selected module, there are subfoldes. and these subfolders contains specific input files with specific format, for reerance user can check teh link for example inputs folder. for detailed info of input files given in the documentation. 
+- the inputs folder has a fixed structure. for every selected module, there are subfoldes. and these subfolders contains specific input files with specific format, for reerance user can check teh link for example inputs folder. for detailed info of input files given in the documentation.
+
+```
+## 📁 Input Directory Structure
+```
+inputs/
+│
+├── Ancestor_seq_recunstruction/          # Stages ④ chainNet + ⑤ Ancestor reconstruction
+│   ├── LastZ_alignments/
+│   │   ├── Species1.axt                  # one .axt per non-reference species
+│   │   ├── Species2.axt                  # stem name must match seq/, species_info.txt, tree.txt
+│   │   └── SpeciesN.axt
+│   ├── seq/
+│   │   ├── Species1.fa                   # query + reference FASTA (.fa / .fasta / .fna)
+│   │   ├── SpeciesN.fa
+│   │   └── refSpecies.fa                 # reference genome must also be present
+│   ├── species_info.txt                  # fixed filename — see format below
+│   └── tree.txt                          # Newick tree — same names as all other files
+│
+├── eba_analysis/                         # Stage ② EBA analysis
+│   ├── chr_size.txt                      # fixed filename — reference chromosomes only
+│   └── classification.eba               # fixed filename — must contain lineage= entry
+│
+├── enrichment_analysis/                  # Stage ③ Enrichment analysis
+│   ├── 3kegg_annotationTOgenes.txt       # fixed filename — required when getenrich.r: "ko"
+│   └── protein_annotation.tsv           # fixed filename — 5-column TSV, no header
+│
+└── synteny_processing/                   # Stage ① Synteny processing
+    ├── all_sequence_lengths.txt          # fixed filename — generate with genome_length_maker.sh
+    ├── Satsuma_alignments/
+    │   ├── Genus_species1.txt            # one .txt per query species (Satsuma output)
+    │   └── Genus_speciesN.txt
+    └── Scaffolds.txt                     # scaffold-level species list (or set ALL_CHROMOSOMES)
+```
+
+> **Fixed filename** — must use the exact name shown; the pipeline looks for it by name.  
+> **Variable** — any filename is accepted; only the extension matters. Any number of files allowed.
+
+---
+
+### File format notes
+
+#### `LastZ_alignments/*.axt`
+Run LastZ with these recommended parameters for non-vertebrate species:
+```bash
+lastz reference.fa[multiple] query.fa \
+    C=0 E=30 H=2000 K=2200 L=2200 O=400 Y=3400 \
+    --format=axt --output=SpeciesName.axt
+```
+Use the **HoxD55** scoring matrix for distant/non-vertebrate comparisons.  
+The stem of each `.axt` filename (without extension) **must match** the names used in `seq/`, `species_info.txt`, and `tree.txt`.
+
+#### `seq/*.fa`
+Standard FASTA format. Accepts `.fa`, `.fasta`, `.fna`.  
+Both query and reference genomes must be present.
+
+#### `species_info.txt`
+Three space/tab-separated fields per line, no header:
+
+| Field | Values | Meaning |
+|-------|--------|---------|
+| Species name | string | must match `seq/`, `LastZ_alignments/`, and `tree.txt` exactly |
+| Role | `0` / `1` / `2` | `0` = reference · `1` = descendant · `2` = outgroup |
+| Assembly level | `1` / `0` | `1` = chromosome-scale · `0` = scaffold-level |
+
+#### `tree.txt`
+Newick format, single line. Must start with `(` and end with `;`.
+
+#### `chr_size.txt`
+Two-column TSV: `chromosome_name  size_bp`. Reference species only. Integer sizes.
+
+#### `all_sequence_lengths.txt`
+Three-column TSV: `sequence_name  length_bp  species`. All sequences from all genomes.  
+Use the included `genome_length_maker.sh` script to generate this file.
+
+#### `Satsuma_alignments/*.txt`
+Eight-column TSV output from Satsuma, no header:
+`query_chr  q_start  q_end  ref_chr  r_start  r_end  score  strand`  
+Strand must be `+` or `-`.
+```
+  
 ```
 ./inputs/
 ├── Ancestor_seq_recunstruction
