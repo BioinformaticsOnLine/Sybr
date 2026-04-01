@@ -115,70 +115,36 @@ The link for sample data given above. To use this sample data, downloa this data
 - In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module
 - 
 ```bash
-cat run_sybr_config.yaml 
-# Define which pipeline stages to run
+# ─────────────────────────────────────────────
+#  run_sybr_config.yaml  —  User-facing config
+#  Edit this file to control pipeline behaviour
+# ─────────────────────────────────────────────
+
+# ── Base I/O directories ────────────────────
+base_input_dir:  "/home/ajay/ajay_bhatia/my_writings/sybr/sybr_test4/inputs"
+base_output_dir: "/home/ajay/ajay_bhatia/my_writings/sybr/sybr_test4/outputs"
+
+# ── Pipeline stages to run ──────────────────
 run_stages:
   synteny_processing: true
   eba_analysis: true
-  enrichment_analysis: false
-  chainNet_generation: false
-  Ancestor_seq_recunstruction: false
+  enrichment_analysis: true
+  chainNet_generation: true
+  Ancestor_seq_recunstruction: true
 
-#must
-scripts: "script_base"
-
-#synteny processing
-satsuma_alignments: "inputs/Satsuma_alignments"
-sequence_lengths_file: "inputs/seq2/all_sequence_lengths.txt"
-synteny_results: "outputs/synteny_results"
+# ── Species / reference names ───────────────
 reference_name: "Adineta_vaga"
-out_final: "pre-EBA1"
+reference_species: "vaga"
 
-#eba analysis
-eba_format:
-  pre_EBA_dir: "outputs/pre-EBA"         
-  scaffolds_file: "inputs/Scaffolds.txt"   ## ALL_CHROMOSOMES ## inputs/Scaffolds.txt
-  eba_input_dir: "inputs/EBA/EBA-input" 
-  mshsbs_dir: "outputs/msHSBs" 
-  ebrs_dir: "outputs/EBRs"              
-  copy_destination_dir: "outputs/EBA_results"
-  chr_size_file: "inputs/EBA/chr_size.txt"
-eba_tools:
-  eba_script_path: "tools/EBA3.0/EBA.pl"   # M #
-
-#eba_threads: 5
-
+# ── EBA parameters (user-facing) ───────────────────────────────
 eba:
-  n: 5
-  d: "inputs/EBA/EBA-input"
-  r: "Adineta_vaga"
-  p: 300 # M #
-  t: 20  # M #
-  c: "inputs/EBA/classification.eba"
-  k: true  # M #
+  n: 5           # number of EBA iterations
+  r: "Adineta_vaga"  # reference species name
+  p: 300         # resolution parameter  # M
 
-#enrichment analysis
-enrichment:
-  annotation_file: "inputs/getENRICH_input/protein_annotation.tsv"  # # add the options for model organism KEGG code  
-  kegg_file: "inputs/getENRICH_input/3kegg_annotationTOgenes.txt"   
-  msHSBs_dir: "outputs/msHSBs"
-
+# ── Enrichment KEGG options ─────────────────
 getenrich:
-  r: "ko"    # # add the option for model organism KEGG code
-
-#alignment processing
-reference_species: vaga
-
-chainNet:   
-  seq_dir: "inputs/seq"  # # add the ref_dir also 
-  lastZ_alignments: "inputs/LastZ_alignments"      
-  output_dir: "outputs/DESCHRAMBLER_results"  
-
-#deschrambler
-deschrambler:
-  pipeline_tool_dir: "tools/DESCHRAMBLER"  # M #
-  tree_file: "inputs/tree.txt"  
-  species_file: "inputs/species_info.txt"
+  r: "ko"  # KEGG code, or model-organism code
 
 ```
 
