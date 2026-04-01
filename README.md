@@ -73,6 +73,44 @@ conda activate sybr
 
 The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
+##### 1. Input Folder Structure
+```
+./inputs/
+├── Ancestor_seq_recunstruction
+│   ├── LastZ_alignments
+│   │   ├── Species1.axt
+│   │   ├── Species2.axt
+│   │   ├── Species3.axt
+│   │   ├── Species4.axt
+│   │   └── Species5.axt
+│   ├── seq
+│   │   ├── Species1.fa
+│   │   ├── Species2.fa
+│   │   ├── Species3.fa 
+│   │   ├── Species4.fa
+│   │   ├── Species5.fa
+│   │   └── refSpecies.fa
+│   ├── species_info.txt
+│   └── tree.txt
+├── eba_analysis
+│   ├── chr_size.txt
+│   └── classification.eba
+├── enrichment_analysis
+│   ├── 3kegg_annotationTOgenes.txt
+│   └── protein_annotation.tsv
+└── synteny_processing
+    ├── all_sequence_lengths.txt
+    ├── Satsuma_alignments
+    │   ├── Genus_species1.txt
+    │   ├── Genus_species2.txt
+    │   ├── Genus_species3.txt
+    │   ├── Genus_species4.txt
+    │   └── Genus_species5.txt
+    └── Scaffolds.txt
+
+```
+
+
 ##### 1. Config Setting for Sybr
 - In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module
 - 
