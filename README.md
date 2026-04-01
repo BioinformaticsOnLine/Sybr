@@ -74,30 +74,40 @@ conda activate sybr
 The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
 ##### 1. Input Folder Structure
+- the inputs folder has a fixed structure. for every selected module, there are subfoldes. and these subfolders contains specific input files with specific format, for reerance user can check teh link for example inputs folder.
+- LastZ_alignments foldr 
 ```
 ./inputs/
 ├── Ancestor_seq_recunstruction
-│   ├── LastZ_alignments
-│   │   ├── Species1.axt
-│   │   ├── Species2.axt
-│   │   ├── Species3.axt
-│   │   ├── Species4.axt
-│   │   └── Species5.axt
+│   ├── LastZ_alignments   
+│   │   ├── Species1.axt  --------------------------------------------------------------------------------------------------------------------------          
+│   │   ├── Species2.axt         | in LastZ_alignments subfolder alignemnt files contains with parameters:
+│   │   ├── Species3.axt         | lastz reference.fa[multiple] query.fa C=0 E=30 H=2000 K=2200 L=2200 O=400 Y=3400 --format=axt --output=query.axt
+│   │   ├── Species4.axt         | file name should same as used in species_info.txt,tree.txt and in fasta files in seq folder.
+│   │   └── Species5.axt  --------------------------------------------------------------------------------------------------------------------------
 │   ├── seq
-│   │   ├── Species1.fa
-│   │   ├── Species2.fa
-│   │   ├── Species3.fa 
-│   │   ├── Species4.fa
-│   │   ├── Species5.fa
-│   │   └── refSpecies.fa
-│   ├── species_info.txt
-│   └── tree.txt
-├── eba_analysis
-│   ├── chr_size.txt
-│   └── classification.eba
-├── enrichment_analysis
-│   ├── 3kegg_annotationTOgenes.txt
-│   └── protein_annotation.tsv
+│   │   ├── Species1.fa   --------------------------------------------------------------------------------------------------------------------------
+│   │   ├── Species2.fa          | in seq subfolder all the query and referance fasta files should present with same name as in LastZ_alignments.
+│   │   ├── Species3.fa          |
+│   │   ├── Species4.fa          |
+│   │   ├── Species5.fa          |
+│   │   └── refSpecies.fa --------------------------------------------------------------------------------------------------------------------------
+│   ├── species_info.txt  --------------------------------------------------------------------------------------------------------------------------
+│   └── tree.txt                 | species_info.txt file contains information of query species, referance species and genome assembly level. tree.txt                                             |                                | files conatine newick tree with same names as in species_info.txt and files in seq, LastZ_alignments subfolder. details explained in documentation
+|                         --------------------------------------------------------------------------------------------------------------------------
+|
+|                         --------------------------------------------------------------------------------------------------------------------------
+├── eba_analysis                 | eba_analysis subfolder should conain two files chr_size.txt and classification.eba which conatins information of chromosome size and classification. 
+│   ├── chr_size.txt             | detailed information present in documentation.
+│   └── classification.eba       |
+|                         --------------------------------------------------------------------------------------------------------------------------
+|
+|                
+├── enrichment_analysis   --------------------------------------------------------------------------------------------------------------------------
+│   ├── 3kegg_annotationTOgenes.txt | enrichment_analysis subfolder should contains two files 3kegg_annotationTOgenes.txt and protein_annotation.tsv which contains inormation of
+│   └── protein_annotation.tsv      | kegg annotation and coordinates of protein coding genes.
+|                         --------------------------------------------------------------------------------------------------------------------------
+|
 └── synteny_processing
     ├── all_sequence_lengths.txt
     ├── Satsuma_alignments
@@ -140,7 +150,7 @@ reference_species: "vaga"
 eba:
   n: 5           # number of EBA iterations
   r: "Adineta_vaga"  # reference species name
-  p: 300         # resolution parameter  # M
+  p: 300         # primary resolution parameter
 
 # ── Enrichment KEGG options ─────────────────
 getenrich:
