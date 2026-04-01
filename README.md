@@ -93,7 +93,8 @@ The link for sample data given above. To use this sample data, downloa this data
 │   │   ├── Species5.fa          |
 │   │   └── refSpecies.fa --------------------------------------------------------------------------------------------------------------------------
 │   ├── species_info.txt  --------------------------------------------------------------------------------------------------------------------------
-│   └── tree.txt                 | species_info.txt file contains information of query species, referance species and genome assembly level. tree.txt                                             |                                | files conatine newick tree with same names as in species_info.txt and files in seq, LastZ_alignments subfolder. details explained in documentation
+│   └── tree.txt                 | species_info.txt file contains information of query species, referance species and genome assembly level. tree.txt
+|                                | files conatine newick tree with same names as in species_info.txt and files in seq, LastZ_alignments subfolder. details explained in documentation
 |                         --------------------------------------------------------------------------------------------------------------------------
 |
 |                         --------------------------------------------------------------------------------------------------------------------------
