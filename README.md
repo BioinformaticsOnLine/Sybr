@@ -73,10 +73,7 @@ conda activate sybr
 
 The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
-##### 1. Input Folder Structure
-- the inputs folder has a fixed structure. for every selected module, there are subfoldes. and these subfolders contains specific input files with specific format, for reerance user can check teh link for example inputs folder. for detailed info of input files given in the documentation.
 
-```
 ## 📁 Input Directory Structure
 ```
 inputs/
@@ -153,7 +150,9 @@ Use the included `genome_length_maker.sh` script to generate this file.
 Eight-column TSV output from Satsuma, no header:
 `query_chr  q_start  q_end  ref_chr  r_start  r_end  score  strand`  
 Strand must be `+` or `-`.
-```
+
+##### 1. Input Folder Structure
+- the inputs folder has a fixed structure. for every selected module, there are subfoldes. and these subfolders contains specific input files with specific format, for reerance user can check teh link for example inputs folder. for detailed info of input files given in the documentation.
   
 ```
 ./inputs/
