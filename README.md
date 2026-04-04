@@ -75,34 +75,43 @@ The link for sample data given above. To use this sample data, downloa this data
 
 
 ##### 1. Input Folder Structure
-```
-inputs/
+```inputs/
 │
 ├── Ancestor_seq_recunstruction/          # Stages ④ chainNet + ⑤ Ancestor reconstruction
 │   ├── LastZ_alignments/
-│   │   ├── Species1.axt                  # one .axt per non-reference species
-│   │   ├── Species2.axt                  # stem name must match seq/, species_info.txt, tree.txt
-│   │   └── SpeciesN.axt
+│   │   ├── habrotrocha.axt               # one .axt per non-reference species
+│   │   ├── ricciae.axt
+│   │   ├── roseola.axt
+│   │   ├── rotatoria.axt
+│   │   └── vagaN.axt
 │   ├── seq/
-│   │   ├── Species1.fa                   # query + reference FASTA (.fa / .fasta / .fna)
-│   │   ├── SpeciesN.fa
+│   │   ├── habrotrocha.fa                # query + reference FASTA (.fa / .fasta / .fna)
+│   │   ├── ricciae.fa
+│   │   ├── roseola.fa
+│   │   ├── rotatoria.fa
+│   │   ├── vaga.fa
+│   │   ├── vagaN.fa
 │   │   └── refSpecies.fa                 # reference genome must also be present
 │   ├── species_info.txt                  # fixed filename — see format below
 │   └── tree.txt                          # Newick tree — same names as all other files
 │
 ├── eba_analysis/                         # Stage ② EBA analysis
 │   ├── chr_size.txt                      # fixed filename — reference chromosomes only
-│   └── classification.eba               # fixed filename — must contain lineage= entry
+│   ├── classification.eba                # fixed filename — must contain lineage= entry
+│   └── reference.fasta                   # reference genome FASTA 
 │
 ├── enrichment_analysis/                  # Stage ③ Enrichment analysis
 │   ├── 3kegg_annotationTOgenes.txt       # fixed filename — required when getenrich.r: "ko"
-│   └── protein_annotation.tsv           # fixed filename — 5-column TSV, no header
+│   └── protein_annotation.tsv            # fixed filename — 5-column TSV, no header
 │
 └── synteny_processing/                   # Stage ① Synteny processing
     ├── all_sequence_lengths.txt          # fixed filename — generate with genome_length_maker.sh
     ├── Satsuma_alignments/
-    │   ├── Genus_species1.txt            # one .txt per query species (Satsuma output)
-    │   └── Genus_speciesN.txt
+    │   ├── Adineta_ricciae.txt           # one .txt per query species (Satsuma output)
+    │   ├── Adineta_vaga2.txt
+    │   ├── Habrotrocha_rosa.txt
+    │   ├── Philodina_roseola.txt
+    │   └── Rotaria_rotatoria.txt
     └── Scaffolds.txt                     # scaffold-level species list (or set ALL_CHROMOSOMES)
 ```
 
