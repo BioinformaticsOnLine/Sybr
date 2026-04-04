@@ -37,7 +37,7 @@ conda --version
 ```
 
 -  If you see something like `conda 24.x.x` — **Conda is already installed, skip the section below.**
--  If you see `command not found` — **follow the installation steps below.**
+-  If you see `command not found` — **install Conda.**
 
 ---
 
