@@ -75,7 +75,8 @@ The link for sample data given above. To use this sample data, downloa this data
 
 
 ##### 1. Input Folder Structure
-```inputs/
+```
+inputs/
 │
 ├── Ancestor_seq_recunstruction/          # Stages ④ chainNet + ⑤ Ancestor reconstruction
 │   ├── LastZ_alignments/
