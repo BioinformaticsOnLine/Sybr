@@ -59,7 +59,7 @@ Move into the project folder:
 cd Sybr
 ```
 ##### 4. Create Conda Environment
-Install all required dependencies by creating the Conda environment from the provided YAML file:
+Install all required dependencies by creating the Conda environment from the provided YML file:
 ```bash
 conda env create -f install_sybr_dependence.yml
 ```
