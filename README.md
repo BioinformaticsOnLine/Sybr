@@ -71,7 +71,7 @@ conda activate sybr
 
 ### Usage
 
-The link for sample data given above. To use this sample data, downloa this data and move inside the Sybr folder. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
+The link for sample data given above. To use this sample data, downloa this data. Sybr's workflow is controlled via a `run_sybr_config.yaml` file, allowing you to selectively run different analysis stages. User can check the Documentation for detailed understanding about config settings.
 
 
 ##### 1. Input Folder Structure
