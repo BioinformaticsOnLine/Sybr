@@ -13,7 +13,8 @@
 *   **Ancestral Genome Reconstruction:** Algorithms to infer the genomic organization of common ancestors with DESCHRAMBLER.
 *   **Enrichment Analysis:** Perform functional enrichment on identified regions using getENRICH.
 *   **Modular Workflow:** Flexible `config.yaml` to run specific stages of the analysis.
-<img width="1317" height="650" alt="Copy of Input folder" src="https://github.com/user-attachments/assets/e9d734e8-7400-4edc-904f-42ea47399f65" />
+
+<img width="1317" height="650" alt="Copy of Input folder" src="https://github.com/user-attachments/assets/0818ba54-2ebc-4009-b26b-a7fbc2b2b87b" />
 
 ## 🚀 Getting Started
 ### Prerequisite
