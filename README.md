@@ -137,7 +137,7 @@ The stem of each `.axt` filename (without extension) **must match** the names us
 
 ###### `seq/*.fa`
 Standard FASTA format. Accepts `.fa`, `.fasta`, `.fna`.  
-Both query and reference genomes must be present.
+Both query and reference genomes must be present. The format of header should be **>chr1, >chr2, >chr3, ...** for chromosome level genome assembly and **>scaf1, >scaf2, scaf3, ...** for scaffold level genome assemply.
 
 ###### `species_info.txt`
 Three space/tab-separated fields per line, no header:
