@@ -253,6 +253,10 @@ or
 ```bash
 ./sybr.sh -j 8
 ```
+or with clean **-C** flag
+```
+./sybr.sh -j 8 -C
+```
 ##### 5. Custom window-sizes Sybr Commands
 ```bash
 ./sybr.sh -w 200000,400000,500000 -j 8
