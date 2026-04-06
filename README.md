@@ -221,6 +221,7 @@ Usage: ./sybr.sh [OPTIONS]
 
 Options:
   -c, --config FILE      Configuration file (default: run_sybr_config.yaml)
+  -P, --paths FILE       Static paths file (default: pipeline_paths.yaml)
   -j, --cores N          Number of cores (default: all available)
   -t, --target RULE      Target rule (default: all)
   -l, --log FILE         Log output to file
@@ -229,6 +230,7 @@ Options:
   -k, --keep-going       Keep going on independent job failures
   -v, --verbose          Verbose Snakemake output
   -s, --skip-validation  Skip input validation
+  -C, --clean            Remove intermediate files after successful completion
   -w, --window-sizes     Comma-separated window sizes in bp (e.g., 100000,300000,500000)
   -p, --step-size        Step size in bp for synteny assignment (default: 30000)
   -h, --help             Show this help
@@ -238,6 +240,7 @@ Examples:
   ./sybr.sh --window-sizes 200000,400000 --step-size 50000  # Custom window sizes and step size
   ./sybr.sh --window-sizes 100000                        # Single window size
   ./sybr.sh --step-size 25000                           # Custom step size with default windows
+  ./sybr.sh --clean                                      # Delete intermediate files after run
 
 Note: Window sizes and step size only affect synteny_assign rules. If not specified,
       defaults are: window sizes = 100000,300000,500000 and step size = 30000.
