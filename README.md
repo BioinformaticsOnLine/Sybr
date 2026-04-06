@@ -165,9 +165,10 @@ Strand must be `+` or `-`.
 ---
 ##### 2. Config Setting for Sybr
 - In run_stages section, user can choose the pipeline modules to run. in frount of each module mane, type **true** for activate the module and **false** for deactivate the module. 
-- Use need to provide path fro base_input_dir ( path of structured input folder) and base_output_dir (path of output folder.
-- In reference_species provide the species name only.
-- for r: in getenrich provide ko if kegg annotation file availble, of KEGG Organism code available the provide organism code. for details check documentation.
+- Use need to provide path for **base_input_dir** ( path of structured input folder) and 
+**base_output_dir** (path of output folder).
+- In **reference_species** provide the species name of referance only and in **referance_name** and **r:** provide genus and species name of referance.
+- for **r:** in **getenrich** provide **KEGG Organism code**. user can check the availability of KEGG organims code in https://www.genome.jp/kegg/tables/br08606.html. if KEGG organism code is not availabe the user can use **ko**. for this option user need to provide kegg annotation file. to get the information about preparation of kegg annotation file refer to https://getenrich.igib.res.in/assets/files/getENRICH-documentation.pdf 
 ```bash
 # ─────────────────────────────────────────────
 #  run_sybr_config.yaml  —  User-facing config
