@@ -49,6 +49,7 @@ dependencies:
 
   # Bioinformatics tools
   - seqkit             # <-- added
+  - jitendralab::eba3  # <-- added
 
   # R packages from jitendralab
   - jitendralab::r-syntenyplotter>=1.0.2
