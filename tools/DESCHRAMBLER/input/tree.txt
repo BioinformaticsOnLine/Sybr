@@ -1,2 +1,0 @@
-((ricciae:0.07,(vaga:0.01,vagaN:0.01):0.06):0.10,(roseola:0.15,rotatoria:0.15)@:0.03,habrotrocha:0.22);
-
