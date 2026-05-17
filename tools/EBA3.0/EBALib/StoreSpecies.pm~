@@ -1,0 +1,99 @@
+# $Id$ Store Species
+# Perl module for EBA MyLib::StoreSpecies;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+MyLib::StoreSpecies  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package MyLib::StoreSpecies;
+
+use strict;
+use warnings;
+#use Term::ANSIColor;
+use Exporter;
+
+our @EXPORT_OK = "storeSpecies";
+
+if (-e "species.sps") { #print "\nFile species.sps exists.\n";  
+	unlink ("species.sps"); 
+	#print "\t-- -  File species.sps deleted.\n";
+	} 
+
+sub storeSpecies {
+my ($path,$fileName)=@_;
+	my @new_file=split(/_/, $fileName);  ## File is expected to be sepeared by underscore !!
+	if ($new_file[0] ne "")  {
+		my $InFileName="$path/$fileName";
+		my $OutFileName="species.sps";
+        	storeInfo ( $path, $InFileName,$OutFileName, $new_file[0]); 
+	}	
+}
+
+sub storeInfo {
+
+my ($path, $InFile, $OutFile, $name)=@_;
+my (@array, @information, %scaffData, @name);
+
+open INFILE,  $InFile or die MyLib::Messages::failOp($InFile);
+open OUTFILE, ">>" , $OutFile or die MyLib::Messages::failOp($OutFile);
+
+$|++;
+$/ = "\n";
+
+while (<INFILE>) {
+	my $line=lc($_); chomp $line;
+	if ($line =~ /^\s*#/) { next; }
+	$line=MyLib::CommonSubs::trim($line);
+	my @tmpLine=split /\t/, $line;
+	push (@information, $tmpLine[9]);  ## the scaffolds information or genome information
+	push (@name, $tmpLine[8]); 
+	
+}
+close INFILE or die MyLib::Messages::failCl("$InFile");
+
+my @info=MyLib::CommonSubs::uniq(@information);
+@name=MyLib::CommonSubs::uniq(@name); 
+s{^\s+|\s+$}{}g foreach @info;
+s{^\s+|\s+$}{}g foreach @name;
+
+if($#info >= 1) { MyLib::Messages::multiHitprint($InFile); }
+else { print OUTFILE "$name[0]\t$info[0]\n"; }
+
+undef @information; undef @name;
+close OUTFILE or die MyLib::Messages::failCl("$OutFile");
+}  # subrutine ends here 
+
+
+
+1;

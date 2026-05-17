@@ -1,0 +1,276 @@
+# $Id$ Draw Chromosome Final Graph
+# Perl module for EBA EBALib::Draw::drawBreakpointChrGraphFinal;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+EBALib::Draw::drawBreakpointChrGraphFinal - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package EBALib::Draw::drawBreakpointChrGraphFinal;
+
+use strict;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "breakpointGraphFinal";
+
+sub breakpointGraphFinal {
+my ($fileName, $resName, $spsNum)=@_;
+my $file2="EBR_density_chromosomes.data";
+
+my $InFile='sps.txt'; my $InFile2='classification.eba';
+my (@spsArr);
+
+open INFILE,  $InFile or die "$0: open $InFile: $!";
+open INFILE2,  $InFile2 or die "$0: open $InFile2: $!";
+
+$|++;
+$/ = "\n";
+
+while (<INFILE>) { my $line=lc($_); chomp $line; my @tmpLine=split /\,/, $line; push @spsArr, @tmpLine;} close INFILE or die "Could not close $InFile file: $!\n"; ## It has only one line !!!!
+
+while (<INFILE2>) {
+	my $line=lc($_); chomp $line;
+	if ($line =~ /^\s*#/) { next; }
+	next if m/^lineage/;  # discard lineage
+	$line=trim($line);
+	my @tmpLine=split /\=/, $line;
+	push (@spsArr, $tmpLine[0]);  ## the species name information
+	
+}
+close INFILE2 or die "Could not close $InFile2 file: $!\n";
+
+my (@allBreaks, $countBreakNumber, @finalData, @all, @catColor, @arrayChr,@newspsArray, @spsArray2);
+
+my %hash;
+open(CHRFILE, "chr_size.txt") || warn "Can't open chromosome file\n";
+while (<CHRFILE>) { chomp; my ($key, $val) = split /\t/, lc($_); $hash{$key} = $val;} ### We can read and store it ... !!!!
+close CHRFILE or die "could not close file: $!\n";
+foreach my $key ( sort {$a <=> $b} keys %hash){ push (@arrayChr, $key); } ## Store the chromosome data
+
+my @spsArray = sort { $a cmp $b } @spsArr;
+@newspsArray=@spsArray; ### already declared
+foreach my $aaa (@newspsArray) {$aaa=~ s/_/ /ig; push (@spsArray2, $aaa);}
+
+	push (@finalData, \@arrayChr);
+	foreach my $speciesName(@spsArray) {    # print "$speciesName\n";
+		foreach my $chr (@arrayChr) {
+			open INFILE,  "$fileName" or die "$0: open $fileName : $!";
+				while (<INFILE>) {
+					chomp;    
+					my $line= lc($_);  #print "$line\n"; ## Now all the content are in lower case
+					my @tmp = split /\t/, $line;
+					s{^\s+|\s+$}{}g foreach @tmp;
+					my @tmp2 = split /\:/, $tmp[2]; ## Reading the name
+					s{^\s+|\s+$}{}g foreach @tmp2;
+					#next if $tmp[3] ne $speciesName;
+						if (("$tmp[1]" eq "$chr") and ($tmp2[0] eq $speciesName) and ($tmp[5] eq "reuse" or "unique")) { ## Currently break is lower case
+
+							$countBreakNumber++;
+
+						}
+				
+				}
+		my $newNum; my $chrSizeInMB=$hash{$chr}/1000000; ## To convert in MB	
+		if(!$countBreakNumber) { $newNum=0; } else { $newNum=stround(($countBreakNumber/$chrSizeInMB),2);} 
+
+		#if (!$countBreakNumber) {$countBreakNumber=1;}
+		#my $newNum=$hash{$chr}/$countBreakNumber;
+		push (@allBreaks, $newNum);
+		push (@all, $newNum);
+		$countBreakNumber=0;
+		}
+	push (@allBreaks, $speciesName); ## To add the name of species
+	my ($rand, $rand2) = random_colors();
+	push(@finalData, [@allBreaks]);
+	push (@catColor, $rand); #print @catColor;
+	undef @allBreaks; 	
+	
+	
+	}
+my $maximum=max(@all);
+print2d (\@finalData,$file2);
+#-generateGraph (\@finalData,\@catColor, \@spsArray2, $maximum, $resName, $spsNum);
+}
+
+sub stround
+{
+    my( $n, $places ) = @_;
+    my $sign = ($n < 0) ? '-' : '';
+    my $abs = abs $n;
+    $sign . substr( $abs + ( '0.' . '0' x $places . '5' ), 0, $places + length(int($abs)) + 1 );
+}
+
+sub generateGraph {
+
+my ($finalData_ref, $catColor_ref,$allSps_ref, $max, $resName, $spsNum)=@_;
+my @finalData=@$finalData_ref;
+my @catColor=@$catColor_ref;
+my @allSps=@$allSps_ref;
+my $y_axis_max = $max;
+
+use strict;
+use warnings;
+#-use GD;
+#-use GD::Text;
+#-use GD::Graph::linespoints;
+
+#create graph object for canvas 800 by 600 pixels
+my $firstN=(1600+($spsNum*2)); my $secondN=(800+($spsNum*2));
+
+q^
+my $my_graph = new GD::Graph::linespoints($firstN,$secondN,1);
+#set graph options required
+
+
+$my_graph->set(
+	'title' => 'Density of EBRs per chromosome at merge resolution', #graph title
+	'y_label' => 'No. EBRs', #y-axis label
+	'x_label' => 'Reference chromosome',
+	'y_max_value' => $y_axis_max, #the max value of the y-axis
+	'y_min_value' => 0, #the min value of y-axis, note set below 0 if negative values are required
+	'y_tick_number' => 20, #y-axis scale increment
+	'y_label_skip' => 1, #label every other y-axis marker
+	'box_axis' => 0,
+	'line_width' => 2,
+	'x_label_position' => .5,
+	'y_label_position' => .5, 
+	'shadow_depth' => 3,
+	'bargroup_spacing' => 4,
+	'accent_treshold' => 200, 
+	't_margin'=> 20,
+	'b_margin'=> 20, 
+	'l_margin'=> 20, 
+	'r_margin'=> 20,
+	'line_types' => [ 3, 4 ],
+	'y_number_format' => \&y_format,
+	#'borderclrs'=> 'black',
+	#do not draw border around graph
+	#width of lines
+	'legend_spacing' => 5, #spacing between legend elements
+	#'legend_placement' =>'RC', #put legend to the centre right of chart
+	'dclrs' => \@catColor, #reference to array of category colours for each line
+	'transparent' => 0
+	) || die "\nFailed to create line graph: $my_graph->error()";
+#set legend
+$my_graph->set_legend(@allSps);
+#plot graph with table data
+
+$my_graph->set_title_font(['verdana', 'arial', gdMediumBoldFont],14);
+$my_graph->set_x_label_font(['verdana', 'arial', gdMediumBoldFont],12); 
+$my_graph->set_y_label_font(['verdana', 'arial', gdMediumBoldFont],12); 
+$my_graph->set_x_axis_font(['verdana', 'arial', gdMediumBoldFont],12); 
+$my_graph->set_y_axis_font(['verdana', 'arial', gdMediumBoldFont],12); 
+$my_graph->set_legend_font(['verdana', 'arial', gdMediumBoldFont],12); 
+
+my $plot = $my_graph->plot(\@finalData);
+#write graph to a file
+my $line_file = "EBR_density_chromosomes.gif";
+
+open(IMG, ">$line_file") || die ("\nFailed to save graph to file: $line_file. $!");
+print IMG $plot->gif();
+close (IMG);
+
+use Cwd;
+my $currentdir= getcwd;
+print "Created a reference chromosome based line graph for EBRs in $currentdir/$line_file\n";
+
+q^ if 0;
+}
+
+
+sub y_format {
+my $value = shift;
+my $ret;
+
+if ($value >= 0) {
+$ret = stround($value, 2); 
+}
+else {
+$ret = stround($value, 2); 
+}
+} 
+
+##--------------------------------------------------------------
+sub random_colors {
+    my ($r, $g, $b) = map { int rand 256 } 1 .. 3;
+
+    my $lum = ($r * 0.3) + ($g * 0.59) + ($b * 0.11);
+
+    my $bg = sprintf("#%02x%02x%02x", $r, $g, $b);
+    my $fg = $lum < 128 ? "white" : "black";
+
+    return ($bg, $fg);
+}
+
+# Perl trim function to remove whitespace from the start and end of the string
+sub trim($)
+{
+	my $string = shift;
+	$string =~ s/^[\t\s]+//;
+	$string =~ s/[\t\s]+$//;
+	$string =~ s/[\r\n]+$//; ## remove odd or bad newline ...
+	return $string;
+}
+
+
+##-------------------------------------------------------------
+sub max {
+    my ($max, @vars) = @_;
+    for (@vars) {
+        $max = $_ if $_ > $max;
+    }
+    return $max;
+}
+
+##----------------------------------------------------------------
+## to print any 2d array 
+sub print2d {
+my ($array2d_ref, $file2)=@_;
+my @array2d=@$array2d_ref;
+
+open OUTFILE, ">" , $file2 or die "$0: open $file2: $!";
+
+#print "Print Using ForEach\n";
+foreach my $row(@array2d){
+   foreach my $val(@$row){
+      print OUTFILE "$val\t";
+   }
+   print OUTFILE "\n";
+}
+close OUTFILE or die "could not close file: $!\n";
+}
+
+
+1;

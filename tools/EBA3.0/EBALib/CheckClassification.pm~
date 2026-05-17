@@ -1,0 +1,83 @@
+# $Id$ Check Classification
+# Perl module for EBA MyLib::CheckClassification;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+MyLib::CheckClassification  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package MyLib::CheckClassification;
+use strict; 
+use warnings;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "verifyClassification";
+
+sub verifyClassification {
+    my ($fileIn, $refName) = @_;
+    open my $fh, '<', $fileIn or die MyLib::Messages::failOp($fileIn);
+	
+    my @spstmp;
+    open(SPSFILE, "sps.txt") || warn MyLib::Messages::failOp("file");
+    while (<SPSFILE>) { chomp; next if $_ =~ /^\s*#/; @spstmp = split /\,/, lc($_);}
+    close SPSFILE or die MyLib::Messages::failCl("file");
+
+    my @allClassification; my @speciesNames;
+    while (<$fh>) {
+	chomp $_; my $line=lc($_);
+	next if $line =~ /^\s*$/;
+	if (index($line,"#") == 0) { next; } # Lines starting with a hash mark are comments
+	$line=MyLib::CommonSubs::trim($line);
+	$line=~ s/\r//g;
+	next if $line =~ /^$/; ##blank line
+	my @tmpLine=split /\=/, $line; 
+	if ($line =~ /^lineage/) { if (defined($tmpLine[1])) { MyLib::Messages::noLineage($fileIn)} } else { @speciesNames=split /\,/, $tmpLine[1]; }
+
+	if ($tmpLine[0] =~/^\s*$/) {MyLib::Messages::noGroup($fileIn) } else { push @allClassification, lc($tmpLine[0]);}
+
+	foreach my $species (@speciesNames) { my $res=MyLib::CommonSubs::isInList($species, @spstmp); if ($res == 0) { MyLib::Messages::classError($species, $tmpLine[0], $fileIn , $.)}}
+	undef @speciesNames;
+    }
+my $group=MyLib::CommonSubs::isInList('lineage', @allClassification);
+if($group == 0) { MyLib::Messages::forgotLineage();}
+my $refCheck=MyLib::CommonSubs::isInList(lc($refName), @allClassification);
+if($refCheck == 0) { MyLib::Messages::typoFile($refName, $fileIn);}
+undef @allClassification; 
+}
+
+1;
+
+
+

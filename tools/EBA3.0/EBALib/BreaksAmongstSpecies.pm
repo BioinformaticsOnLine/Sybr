@@ -1,0 +1,141 @@
+# $Id$ Breakpoints Amongst Species
+# Perl module for EBA EBALib::BreaksAmongstSpecies
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+EBALib::BreaksAmongstSpecies  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package EBALib::BreaksAmongstSpecies;
+
+use strict;
+use warnings;
+#use Term::ANSIColor;
+use Exporter;
+
+our @EXPORT_OK = "breakpointsAmongstSpecies";
+
+sub breakpointsAmongstSpecies {
+my $path=shift;
+my $dir="$path/EBA_OutFiles";
+EBALib::Messages::defEBRs();
+
+		opendir(DIR, $dir) or die $!;
+		while (my $file = readdir(DIR)) {
+        		# We only want files
+        		next unless (-f "$dir/$file");
+        		# Use a regular expression to find files ending in .txt
+        		next unless ($file =~ m/\.eba$/); 
+			my @new_file=split(/_/, $file);
+				if ($new_file[0] ne "") { 
+					my $InFileName= "$path/EBA_OutFiles/$file";
+					my $AllFileName= "$path/EBA_OutFiles/all_brk.eba0";
+					my $OutFileName= "$path/EBA_OutFiles/$new_file[0]"."_brk_species.eba1";
+					calculateAmongstSpecies ( $InFileName, $AllFileName, $OutFileName);
+				}				
+		}
+		closedir(DIR);
+}
+
+sub calculateAmongstSpecies {
+
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+my ($InFile, $InFile2, $OutFile)= @_;
+
+open INFILE,  $InFile or die EBALib::Messages::failOp($InFile);
+open INFILE2,  $InFile2 or die EBALib::Messages::failOp($InFile2);
+open OUTFILE, ">" , $OutFile or die EBALib::Messages::failOp($OutFile);
+
+$|++;
+
+$/ = "\n";
+
+my (@StartCor, @EndCor, @Organism, @Chromosome, @Decision, @Breaks);
+
+while (<INFILE>) { ## .eba file which contain breakpoints information 
+my $line=$_;
+chomp $line;
+$line=EBALib::CommonSubs::trim($line);
+if ($line =~ /^\s*#/) { next; }
+my @tmp=split /\t/, $line;
+push (@StartCor, $tmp[3]);
+push (@EndCor, $tmp[4]);
+push (@Organism, $tmp[2]);
+push (@Chromosome, $tmp[1]);
+push (@Decision, $tmp[5]);
+
+}
+close INFILE or die EBALib::Messages::failCl($InFile);
+
+
+while  (<INFILE2>) { ## eba0 as input .. which is concatenated of all eba files
+my $line1 = $_;
+chomp $line1;
+$line1=EBALib::CommonSubs::trim($line1);
+if ($line1 =~ /^\s*#/) { next; }
+my @tmp1 = split /\t/, $line1;
+
+foreach my $index ( 0..$#Chromosome) {  
+if ( $Chromosome[$index] eq $tmp1[1]) {
+	my $OverRes = EBALib::CommonSubs::checkCorOverlaps ($StartCor[$index], $EndCor[$index], $tmp1[3], $tmp1[4]);
+	if ($OverRes) {
+  		 push (@Breaks, "$Chromosome[$index]\t$Organism[$index]\t$tmp1[2]\t$StartCor[$index]\t$EndCor[$index]\t$tmp1[3]\t$tmp1[4]\t$Decision[$index]\t$tmp1[5]");    
+     			}
+		}
+	}
+}
+undef @StartCor; undef @EndCor; undef @Organism; undef @Chromosome;
+close INFILE2 or die EBALib::Messages::failCl($InFile2);
+
+#############################printing lines#####################################################     it print duplicated lines in outfile ???!!!!! Need improvements
+
+foreach my $v(0..$#Breaks) {
+my @jin1=split /\t/, $Breaks[$v];
+	foreach my $z(0..$#Breaks) {
+		my @jin2=split /\t/, $Breaks[$z];
+		if (( $jin1[3] == $jin2[3]) || ($jin1[3] == $jin2[4])) {     ## why with jin2[4] only ????? 
+			print OUTFILE "$Breaks[$z]\n";
+			}
+		}
+}
+close OUTFILE or die EBALib::Messages::failCl($OutFile);
+
+##########################New_Blocks_numbering##################################################
+
+} 
+
+
+1;

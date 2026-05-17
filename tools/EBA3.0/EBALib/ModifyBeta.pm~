@@ -1,0 +1,186 @@
+# $Id$ Modify Beta
+# Perl module for EBA MyLib::ModifyBeta;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+MyLib::ModifyBeta  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package MyLib::ModifyBeta;
+use strict; 
+use warnings;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "alterBeta";
+
+sub alterBeta {
+    my ($fileIn, $spsNum, $ResN) = @_;
+    open (my $fh, '<', $fileIn) or die MyLib::Messages::failOp($fileIn);
+    my @allLines; my @scores; my $multiplyWith=1; my @finalLine;
+    my $maxGo=$spsNum; 
+    while (<$fh>) {
+	chomp $_; 
+	if ($_ =~ /^\s*#/) { next; }
+	my @tmpLine=split /\t/, $_; 
+	push (@scores, $tmpLine[1]);
+	push (@allLines, $_); 
+		if ($. == $maxGo) { 
+			$multiplyWith++; 
+			foreach my $line (@allLines) {
+				my @tmpL=split /\t/, $line; 
+				#if ($_ =~ /^\s*#/) { next; }
+					if ($tmpL[1] == 0) {
+						@scores = grep {$_} @scores; ## removed zero becuase i have to look other than zero
+						my $min=MyLib::CommonSubs::MinMax(@scores);
+						if ($min > 0) {
+						push (@finalLine ,"$tmpL[0]\t$min"); }
+						else { push (@finalLine ,"$tmpL[0]\t0.0001");} ## If all values are Zeros
+					}
+					else {
+						push (@finalLine, "$line");
+					}
+			}
+		$maxGo=$spsNum*$multiplyWith; 
+		undef @allLines; undef @scores;
+		}	
+    }
+    close $fh;
+    unlink("$fileIn");
+
+my @lastResResult=calculateMaxBetaScore(\@finalLine, $ResN);
+
+push @finalLine, @lastResResult;
+
+my $OutFile=$fileIn;
+open OUTFILE, ">" , $OutFile or die MyLib::Messages::failOp($OutFile);
+foreach my $line (@finalLine) { print OUTFILE "$line\n"; }
+close OUTFILE or die MyLib::Messages::failCl("$OutFile");
+}
+
+sub calculateMaxBetaScore {
+#use Term::ANSIColor;
+	my ($allData_ref, $ResN)=@_;
+	my @allData=@$allData_ref;
+
+	my @SpsArray; my @lastRes;
+	open SPSFILE, "sps.txt" or die $!;
+	while (<SPSFILE>) { my $SpsLine=$_; chomp $SpsLine; @SpsArray=split /,/, lc($SpsLine);  my $SpsNumber = scalar (@SpsArray); }
+	close SPSFILE or die MyLib::Messages::failCl("sps.txt");
+
+	my %allD; my @allScore; my @allRes;
+	foreach my $spsName (@SpsArray) {
+		foreach my $spsValues (@allData) {
+			my @tmpLine=split /\t/, $spsValues;
+			my @tmpLine2=split /\:/, $tmpLine[0];
+			if ($tmpLine2[1] eq $spsName) {
+				$allD{$tmpLine2[0]}=$tmpLine[1];
+				}
+			}
+	     foreach my $key (sort { $a <=> $b }(keys %allD)) { push @allScore, $allD{$key}; push @allRes, $key; } ##print "===============\n";
+
+	unshift(@allScore, '0'); ##Added one more values at the begining to begin with
+	my $result=GRNN(\@allScore, scalar(@allRes));
+	undef @allScore; undef @allRes;
+	my $newVal="$ResN:$spsName\t$result";
+	push @lastRes, $newVal;
+	}
+return @lastRes;
+}
+
+
+#  General Regression Neural Network (GRNN) Prediction based on input-target data
+sub GRNN {
+no warnings;
+	my ($allScore_ref, $resNum)=@_;
+	my @allScore=@$allScore_ref;
+
+	use strict;
+	my $Number_of_training_inputs = 100;
+	# Dimension of input
+	my $Number_of_points=$resNum+1; ## To read upto one less ... last will be target set
+	my $Number_of_hidden_units=3;
+	my $sigma=1.2;
+
+	my @data; my @target; my $Increase; my $initialSum=0;  my $finalSum=0;
+	##Draw a matrix ... I thinks this data can be taken from file
+	for (my $i=0; $i<$Number_of_training_inputs; $i++) { 
+  		for (my $j=0; $j<$Number_of_points; $j++) { 
+
+      			#$data[$i][$j]=0.5*$j ;
+			$data[$i][$j]=$allScore[$j];
+			my $N=$j-1;
+			if ($N>=0) { $initialSum=$initialSum+$allScore[$N];}
+			$finalSum=$finalSum+$allScore[$j+1];
+
+  		}
+		my $in = (($finalSum - $initialSum) / ($finalSum) * 100);
+		$in=($allScore[-1]*$in)/100;
+     		my $r=rand($in);
+     		$r=($in-$r);  
+		$target[$i] = $in * $Number_of_points + $r;   
+undef $initialSum;  undef $finalSum;
+	}
+
+	my @new_data;
+	for (my $i=0; $i<$Number_of_points; $i++) { 
+     		$new_data[0][$i]=$allScore[$i];
+	}
+
+my $S1=0;
+my $S2=0;
+
+for (my $k=0; $k < $Number_of_training_inputs; $k++)
+{
+  for (my $zz=0; $zz < $Number_of_hidden_units; $zz++)
+  {
+     my $d=0;   
+     for (my $i=0; $i<$Number_of_points; $i++)
+     { 
+           $d=$d+($data[$k][$i]-$new_data[0][$i])**2;
+       
+         $d=((-1)*$d)*$sigma ;
+         $d=exp($d);
+
+     } # for each point
+$S1=$S1+$d;
+$S2=$S2+$d*$target[$k];   
+ } 
+}
+
+my $Out=$S2/$S1;
+return $Out;
+}
+
+1;
