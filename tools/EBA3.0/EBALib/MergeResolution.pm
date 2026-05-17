@@ -1,0 +1,349 @@
+
+# $Id$ Merge Resolutions
+# Perl module for EBA EBALib::MergeResolution;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+EBALib::MergeResolution  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package EBALib::MergeResolution;
+use strict;
+#use warnings;
+#use Term::ANSIColor;
+
+use Exporter;
+
+our @EXPORT_OK = "mergeAll";
+
+use EBALib::PoissonMethod;
+
+sub mergeAll {
+
+	my ($dir, $spsNumber, $baseResolution, $lineage)=@_;
+	my $OutFile = "FinalMergedResult";
+	open OUTFILE, ">" , $OutFile or die  EBALib::Messages::failOp($OutFile);
+
+	my ($allD_ref, $allR_ref)=storeData($dir);
+	my ($allBrk_ref, $allResolutionData_ref)=moveData($dir, $baseResolution);
+
+	my %allD=%$allD_ref;
+	my @allR=@$allR_ref;
+	my @allResD=@$allResolutionData_ref;
+
+	my @allBrk=@$allBrk_ref;  
+	my $OutFile2 = "all_brk.eba0";
+	open OUTFILE2, ">" , $OutFile2 or die  EBALib::Messages::failOp($OutFile2);
+
+	foreach my $line(@allBrk) { chomp $line; print OUTFILE2 "$line\n"; }  ## Write base resolution all breakpoints in base folder  
+	close OUTFILE2 or die EBALib::Messages::failCl("file");
+
+	@allR = sort {$a <=> $b} @allR; ## sorted
+
+	my @baseR=@{$allD{$baseResolution}}; ## Store *.eba7 for base resolution.
+	
+
+	my $OutFile3 = "newall_brk1.eba0"; ## This will be new all_brk.eba0 reconstructed from *.eba7
+	open OUTFILE3, ">" , $OutFile3 or die EBALib::Messages::failOp($OutFile3);
+	foreach my $line(@baseR) { 
+		chomp $line; 
+		my @tmpHead; 
+		if ($line =~ /^[a-z]+/) { @tmpHead = split(/\t/, $line); print OUTFILE "$line\tFirst_Probability\tSecond_Probability\tRatio\tBreaks_used\tSpecies_Number\tGap\tBreakpoint\n";  next; }
+
+			for (my $res=0; $res<=$#allR; $res++) { 
+				my @resolution=@{$allD{$allR[$res]}}; ## This magic line extracted the base resolution data using $res !!!!
+				
+				next if $allR[$res] == $baseResolution;  ## To next if this is base resolution .. Need to decide based on user option !!!!	nex beause not necessary to check in base resolution there will be always a overlaps			
+				my $lineOut=checkResolutions($line, $spsNumber, \@resolution); 
+				$line=$lineOut;
+			}
+			#print $line; 
+			my @tmpLine = split(/\t/, $line);
+			my $toPrint=$spsNumber+1;
+			my (@start, @end);
+
+
+			for (my $num=0; $num<=$toPrint; $num++) { 
+				my @baseValues= split (/\=/, $tmpLine[$num]); my @baseCor= split (/\-\-/, $baseValues[0]);
+				my @baseDec= split (/\+/, $baseValues[1]);
+				if ($baseDec[0] ne 'Gap') { push (@start, $baseCor[0]); push (@end, $baseCor[1]);}					
+				print OUTFILE "$tmpLine[$num]\t"; 
+				undef @baseValues, undef @baseCor;
+			}	
+
+		@start = grep {$_} @start; @end = grep {$_} @end;
+		@start = sort {$a <=> $b} @start; @end = sort {$a <=> $b} @end;	
+		print OUTFILE "\t\t$start[-1]<->$end[0]\t"; 
+		print OUTFILE "\n";
+		undef @start; undef @end; 
+	
+	
+	## Print the new merged line for each species in a single file name "all_brk_merge.eba0"
+		my @myHeader = split(/\t/, $baseR[0]);
+		foreach (my $bb=0; $bb < $spsNumber; $bb++) {
+			#my @myLineValues= split (/\,/, $tmpLine[$bb]); 
+			next if !$tmpLine[$bb]; my $values=EBALib::CommonSubs::trim($tmpLine[$bb]);
+			my @myLineValues= split (/\=/, $values); 
+			my @myBaseCor= split (/\-\-/, $myLineValues[0]); ## Break Coordinates
+			my @myDecision= split (/\+/, $myLineValues[1]);  ## Gap/Breakpoint info at [0]
+			my $mynewDecision;
+			if($myDecision[0] eq "Breakpoints") { $mynewDecision="Break";} elsif ($myDecision[0] eq "Gap") { $mynewDecision="Gap";} else { $mynewDecision="What?Why";}
+			
+			# Extract the real data from target
+			if ($mynewDecision ne "Break") {
+				#print "checking for new\t$line\n";
+				$mynewDecision=extractRealInformation($myBaseCor[0], $myBaseCor[1], $myHeader[$bb], $tmpLine[$toPrint], \@allResD) ## start, end, orgName, $chr respectively
+				} 
+			print OUTFILE3 "Reference:$baseResolution\t$tmpLine[$toPrint]\t$myHeader[$bb]\t$myBaseCor[0]\t$myBaseCor[1]\t$mynewDecision\n";
+			}
+		#print "$line\n";
+
+	}
+
+	close OUTFILE or die EBALib::Messages::failCl("$OutFile");
+	close OUTFILE3 or die EBALib::Messages::failCl("$OutFile3");
+
+open FILE,  $OutFile3 or die EBALib::Messages::failOp($OutFile3);	## I did some weird things when confused .. but let them as such for a time .. it is not required anymore to sort and rearrange. 			
+my @array = <FILE>;  # Reads all lines into array
+close FILE;
+
+my $OutFile4 = "newall_brk.eba0";
+open OUTFILE4, ">" , $OutFile4 or die EBALib::Messages::failOp($OutFile4);
+my @sorted_array = sort {(split "\t", $a)[1] cmp (split "\t", $b)[1] || (split "\t", $a)[2] cmp (split "\t", $b)[2] } @array; ## sort using column 1,2 and 3;  
+foreach my $linewa (@sorted_array) { print OUTFILE4 $linewa;}
+close OUTFILE4 or die EBALib::Messages::failCl("OutFile4");
+
+my $InFile="FinalMergedResult"; ## At root
+my $InFile2="newall_brk.eba0";  ## At root .. changes made .. now I am providing new breakpoint file generated from merge eba7 file.
+my $OutFileFinal="Result_Merge.final";
+my $resolution=$baseResolution;
+#my $spsNumber=$spsNumber; # The $spsNumber is in the same scope
+#my $lineage=$lineage;  # The $lineage is in the same scope
+
+EBALib::PoissonMethod::poissonScore($InFile, $InFile2, $OutFileFinal, $resolution, $spsNumber, $lineage);
+
+if (-e "FinalMergedResult") { unlink ("FinalMergedResult"); 
+	#print "\t ----File FinalMergedResult deleted.\n";
+	}  
+if (-e "all_brk.eba0") { unlink ("all_brk.eba0"); 
+	#print "\t ----File all_brk.eba0 deleted.\n";
+	}  
+if (-e "newall_brk.eba0") { unlink ("newall_brk.eba0"); 
+	#print "\t ----File newall_brk.eba0 deleted.\n";
+	}  
+
+
+} #The main subrouitine MergeAll ends here
+
+## subroutines here ===
+
+sub extractRealInformation {  ## Checking and extracting the real Breaks information
+my ($start, $end, $orgName, $chr, $allRes_ref)=@_;
+my @AllRes=@$allRes_ref; my $newDecision; my @allDec;
+foreach my $myLine (@AllRes) {
+	#my $myLine= lc($myLine);  #print "$line\n"; ## Now all the content are in lower case
+	my @mytmp = split /\t/, $myLine;
+	s{^\s+|\s+$}{}g foreach @mytmp;
+	if (($start == $mytmp[3]) and ($end == $mytmp[4]) and ($chr eq $mytmp[1]) and ($orgName eq $mytmp[2])) {
+		#print "$myLine---------\n";
+		#$newDecision=$mytmp[5]; 
+		#print "$mytmp[5]\n";
+		push @allDec, $mytmp[5];
+
+		}
+} 
+if (keys %{{ map {$_, 1} @allDec }} == 1) { $newDecision=$allDec[0];} else { $newDecision="Break";} ## Currently if in some of the resolution it is break and another pseudo breaks then i consider it is breaks. Because one in one of the resolution the region turn breaks. ## I can also mention "undef" if required
+undef @allDec;
+return $newDecision;
+}
+
+sub checkResolutions {
+
+my ($baseLine, $spsNum, $resolution_ref)=@_;
+my @resolution=@$resolution_ref;
+my @baseLine = split(/\t/, $baseLine);
+	#for (my $start=0; $start<=$spsNum; $start++) { ## Run by total number of species.
+	foreach my $line(@resolution) {	
+		next if ($line =~/^[a-z]+/); ## To remove the header line .. start with species name .. lowercase ...
+		my @tmp = split(/\t/, $line); 
+		my $narrowCor=$spsNum+4; my $chr=$spsNum+1; ## One less in all becuase it start with 0;
+
+		my $overlap=checkOverlaps ($tmp[$narrowCor], $tmp[$chr], $baseLine[$narrowCor], $baseLine[$chr]);
+		next if $overlap != 1;
+		for (my $start=0; $start<$spsNum; $start++) { ## Run by total number of species. Not equal sign here spsnum-1 
+		my $baseSize=0; my $tarSize=0; my $newCor=0; 
+			my $baseValue=$baseLine[$start];  
+			my @baseValues= split (/\=/, $baseValue); my @baseCor= split (/\-\-/, $baseValues[0]); $baseSize=($baseCor[1]-$baseCor[0]);
+			my $tarValue=$tmp[$start];
+			my @tarValues= split (/\=/, $tarValue); my @tarCor= split (/\-\-/, $tarValues[0]); $tarSize=($tarCor[1]-$tarCor[0]);
+				if(($baseValue != 0) and ($tarValue != 0)){ ## Zero is the default values if no breakpoints
+					#if($baseSize <= $tarSize) { $newCor=$baseValue; } else { $newCor=$tarValue;}
+					$newCor=$baseValue; ## Modified here .. now not replacing with the narrow breakpoints !!!!!!
+				}
+				elsif (($baseValue == 0) and ($tarValue != 0)) {  
+					my $overlapHai=checkOverlaps ("$tarCor[0]<->$tarCor[1]", $tmp[$chr], $baseLine[$narrowCor], $baseLine[$chr]);
+					if ($overlapHai == 1) { $newCor=$tarValue;} else { $newCor=$baseValue;}
+				}
+				elsif (($baseValue != 0) and ($tarValue == 0)) {
+					$newCor=$baseValue;
+				}
+				elsif (($baseValue == 0) and ($tarValue == 0)) {
+					$newCor=0;
+				}
+
+			#print "$newCor\n";			
+			$baseLine[$start]=$newCor;
+
+		undef @baseValues; undef @baseCor; undef @tarValues; undef @tarCor;
+		}
+	}
+my $lineString=join("\t", @baseLine);
+#print "$lineString\n";
+return $lineString;
+undef @baseLine;
+}
+
+
+##------------------------------------------------------------------------------------------
+
+sub checkOverlaps {
+
+my ($narrowTargetBrk, $targetChr, $narrowReferenceBrk, $refChr)=@_;
+
+#print "$narrowTargetBrk, $targetChr, $narrowReferenceBrk, $refChr\n";
+
+my @val1=split /\<\-\>/, $narrowTargetBrk;
+my @val2=split /\<\-\>/, $narrowReferenceBrk;
+
+my $sign=0;
+	if ($targetChr eq $refChr) {	## Next here if chromosome does not match .. we can do the same in previous subroutine !!! In next version		
+	my $OverRes = EBALib::CommonSubs::checkCorOverlaps ($val1[0],$val1[1],$val2[0],$val2[1]);
+	if ($OverRes) { $sign=1; }
+	}
+return $sign;
+}
+
+
+sub storeData {
+my $dir=shift;
+my @data; my @allResolutions; 
+my %allData;
+my $parent = "./$dir";  #The main folder which contains all the resolution folders 
+my ($par_dir, $sub_dir);
+
+opendir($par_dir, $parent) or die "cannot open $parent directory";
+while (my $sub_folders = readdir($par_dir)) {
+    next if ($sub_folders =~ /^\.\.?$/);  # skip . and ..
+    my $path = $parent . '/' . $sub_folders; 
+    next unless (-d $path);   # skip anything that isn't a directory
+		 my ($par_dir2);
+		 opendir($par_dir2, $path) or die $!;
+   		 while (my $sub_folders2  = readdir($par_dir2)) {  
+			next if ($sub_folders2 =~ /^\.\.?$/);  # skip . and ..
+        		my $path2 = $path . '/' . $sub_folders2; 
+			next unless (-d $path2);   # skip anything that isn't a directory
+				my ($par_dir3);        			
+				opendir($par_dir3, $path2);
+    				while (my $file = readdir($par_dir3)) {# print "$file\n";
+        				next unless $file =~ /\.eba7$/;  ## Why eba7 not eba6
+        				my $InFile = $path2 . '/' . $file;
+						open INFILE,  $InFile or die "$0: open $InFile: $!";				
+						my @data = <INFILE>; # Read all file to an array
+						#delete $data[0]; ## to remove the header
+  						close INFILE or die "could not close file: $!\n"; 
+						
+					my @res = split(/\//, $InFile); #print $res[2];
+					
+					if(EBALib::CommonSubs::isInteger($res[2])) { $allData{$res[2]}=[@data]; push (@allResolutions, $res[2]); } else { EBALib::Messages::numericFold("number");}
+
+									
+				}
+				closedir($par_dir3);
+
+		}
+		closedir($par_dir2);
+}
+closedir($par_dir);
+
+return (\%allData, \@allResolutions);
+undef %allData; undef @allResolutions; 
+}
+
+##--------------------------------------------------------------------------------------------
+sub moveData {
+my ($dir, $baseResolution)=@_;
+my @data; my @finalData; my @allResolutionData;
+my $parent = "./$dir";  #The main folder which contains all the resolution folders 
+my ($par_dir, $sub_dir);
+
+opendir($par_dir, $parent) or die EBALib::Messages::failOp($parent);
+while (my $sub_folders = readdir($par_dir)) {
+    next if ($sub_folders =~ /^\.\.?$/);  # skip . and ..
+    #next if $sub_folders != $baseResolution; 
+    my $path = $parent . '/' . $sub_folders; 
+    next unless (-d $path);   # skip anything that isn't a directory
+		 my ($par_dir2); 
+		 
+		 opendir($par_dir2, $path) or die $!; 
+   		 while (my $sub_folders2  = readdir($par_dir2)) {  
+			next if ($sub_folders2 =~ /^\.\.?$/);  # skip . and ..
+        		my $path2 = $path . '/' . $sub_folders2; 
+			next unless (-d $path2);   # skip anything that isn't a directory
+				my ($par_dir3);        			
+				opendir($par_dir3, $path2);
+    				while (my $file = readdir($par_dir3)) {# print "$file\n";
+        				next unless $file =~ /\.eba0$/;
+        				my $InFile = $path2 . '/' . $file; 
+						open INFILE,  $InFile or die EBALib::Messages::failOp($InFile);
+						my @data = <INFILE>; # Read all file to an array
+  						close INFILE or die EBALib::Messages::failCl("file");
+					if ($sub_folders == $baseResolution) { @finalData=@data; }
+					push @allResolutionData, @data;
+					my @res = split(/\//, $InFile); #print $res[2];
+				}
+				closedir($par_dir3);
+		}
+		closedir($par_dir2);
+}
+closedir($par_dir);
+return (\@finalData, \@allResolutionData);
+undef @allResolutionData;
+}
+
+
+1;
+
+
+__END__
+
+

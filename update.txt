@@ -1,0 +1,5 @@
+add:
+fasta_chr for genome reconstruction
+
+remains:
+remove fasta_chr at the end

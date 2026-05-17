@@ -1,0 +1,332 @@
+# $Id$ Breakpoint Finder
+# Perl module for EBA MyLib::BreaksFinder;
+# Author: Jitendra Narayan <jnarayan81@gmail.com>
+# Copyright (c) 2015 by Jitendra. All rights reserved.
+# You may distribute this module under the same terms as Perl itself
+
+##-------------------------------------------------------------------------##
+## POD documentation - main docs before the code
+##-------------------------------------------------------------------------##
+
+=head1 NAME
+
+MyLib::BreaksFinder  - DESCRIPTION of Object
+
+=head1 SYNOPSIS
+
+Give standard usage here
+
+=head1 DESCRIPTION
+
+Describe the object here
+
+=cut
+
+=head1 CONTACT
+
+Jitendra <jnarayan81@gmail.com>
+
+=head1 APPENDIX
+
+The rest of the documentation details each of the object methods.
+
+=cut
+
+##-------------------------------------------------------------------------##
+## Let the code begin...
+##-------------------------------------------------------------------------##
+
+package MyLib::BreaksFinder;
+use strict;
+use warnings;
+
+use Exporter;
+
+our @EXPORT_OK = "defineBreakpoints";
+
+sub defineBreakpoints {
+my ($path,$fileName,$increase)=@_;
+	my @new_file=split(/_/, $fileName);  ## File is expected to be sepeared by underscore !!
+	if ($new_file[0] ne "")  {
+		my $InFileName="$path/$fileName";
+		my $OutFileName="$path/EBA_OutFiles/$new_file[0]"."_brk.eba";
+
+        	findBreaks ( $path, $InFileName,$OutFileName,$increase); 
+		#print "Generating breakpoints in $new_file[0]...\t\t\tDone!!\n";
+	}
+	
+}
+
+sub findBreaks {
+
+use strict;
+use warnings;
+#use Term::ANSIColor;
+
+my ($path, $InFile, $OutFile, $increase)=@_;
+MyLib::Messages::lookEBR($InFile);
+
+my (@array, @information, %scaffData);
+## it sort the file with 2,3,4 columns and generate the breakpoints. !!!
+## perl brk_finder.pl EBA_input_files/$file $new_file[0]"."_brk.eba      
+
+open INFILE,  $InFile or die MyLib::Messages::failOp($InFile);
+open OUTFILE, ">" , $OutFile or die MyLib::Messages::failOp($OutFile);
+
+$|++;
+$/ = "\n";
+#my @array = <INFILE>; # Read all file to an array
+while (<INFILE>) {
+	my $line=lc($_); chomp $line;
+	if ($line =~ /^\s*#/) { next; }
+	$line=MyLib::CommonSubs::trim($line);
+	my @tmpLine=split /\t/, $line;
+	push (@information, $tmpLine[9]);  ## the scaffolds information or genome information
+	push (@array, $line);
+	$scaffData{"$tmpLine[5]:$tmpLine[6]"}=$tmpLine[4]; #Stored the name and coordinates information of scaffolds
+}
+close INFILE or die MyLib::Messages::failCl($InFile);
+
+my @info=MyLib::CommonSubs::uniq(@information); 
+if ((scalar(@info) < 1) or (!@info)) { MyLib::Messages::multiHit($InFile) }
+my $status=lc($info[0]);
+if (scalar(@info) < 1) { MyLib::Messages::genomeMSG($InFile)}
+
+my @sorted_array = sort { (split "\t", $a)[1] cmp (split "\t", $b)[1] || (split "\t", $a)[2] <=> (split "\t", $b)[2] && (split "\t", $a)[3] <=> (split "\t", $b)[3] } @array;
+push @sorted_array, "==="; ## End line to terminate;
+
+if($#sorted_array < 2) { MyLib::Messages::fileFormat(); } ## If empty
+
+# print map { "$_ $scaffData{$_}\n" } keys %scaffData;
+
+	if ($status eq 'chromosomes') {
+		createBreaks(\@sorted_array, $increase, $InFile);
+	}
+	elsif ($status eq 'scaffolds') {
+		createBreaksScaffolds(\@sorted_array, $increase, $InFile, \%scaffData);
+	}
+
+undef @sorted_array; undef @array; undef @information; undef @info; undef %scaffData;
+close OUTFILE or die MyLib::Messages::failCl($OutFile);
+
+}  # subroutine ends here 
+
+
+sub createBreaks {
+
+my ($sorted_array_ref, $increase, $InFile)= @_;
+my @sorted_array=@$sorted_array_ref;
+
+my $count; my $chr_num;
+my (@ref_org, @chr_ref, @brk_cor1, @brk_cor2, @tar_org, @chrId, @chrStart, @chrEnd, @sign);
+my $telomere1 = 0;
+foreach my $line (@sorted_array) {
+	chomp $line; 
+	$line=lc($line);	
+	if ($line =~ /^\s*#/) { next; }
+	if ($line =~ /^$/) { next;} ## if a blank line
+	$count++;
+	my @tmp = split/\t/, lc($line);
+	for (@tmp)  { s/^\s+//; s/\s+$//; } #replace one or more spaces 
+	if ($count == 1) { $chr_num = $tmp[1];}
+
+	##--------------------- increase or decrease the breakpoints size start -----------
+ 
+	if ($line =~ /^\=/) { $tmp[1]=0; $tmp[2]=0; $tmp[3]=0; }         ## change here in increments .. need to check????
+	my $tmp3cor1=$tmp[3]-$increase;      
+	my $tmp2cor2=$tmp[2]+$increase;
+	
+	##-------------------- increase or decrease the breakpoints size end ----------- 
+
+		if ($tmp[1] eq $chr_num) {
+			
+			if ($telomere1 == 0) { print OUTFILE "$tmp[0]\t$tmp[1]\t$tmp[8]\t1\t$tmp2cor2\tPseudoBreak\t0\t0\t0\t0\t0\t0\n"; $telomere1 = 1}
+			push @ref_org, $tmp[0];
+			push @chr_ref, $tmp[1];
+			push @brk_cor1, $tmp3cor1;
+			push @brk_cor2, $tmp2cor2;
+
+			push @tar_org, $tmp[8];
+			push @chrId, $tmp[4];
+			push @chrStart, $tmp[6];
+			push @chrEnd, $tmp[5];
+			push @sign, $tmp[7];
+			}
+
+		else    {
+			for my $x(0.. $#ref_org) {
+				if ($x != $#ref_org) {
+					my $targetSpeciesCoordiPahala=$chrStart[$x]+1; ## added for getting target species coordinates ... If increasing the size we need to think of it !!!!!
+					my $targetSpeciesCoordiDusara=$chrEnd[$x+1]-1;
+					print OUTFILE "$ref_org[$x]\t$chr_ref[$x]\t$tar_org[$x]\t$brk_cor1[$x]\t$brk_cor2[$x+1]\tBreak\t$chrId[$x]\t$chrStart[$x]\t$targetSpeciesCoordiPahala\t$chrId[$x+1]\t$targetSpeciesCoordiDusara\t$chrEnd[$x+1]\n";
+					# print  "$ref_org[$x]\t$chr_ref[$x]\t$tar_org[$x]\t$brk_cor1[$x]\t$brk_cor2[$x+1]\n";
+						if ($brk_cor1[$x] >= $brk_cor2[$x+1]) { 
+							MyLib::Messages::confused($InFile,$chr_ref[$x],$brk_cor1[$x],$brk_cor2[$x+1]);
+						}
+					undef $targetSpeciesCoordiPahala; undef $targetSpeciesCoordiDusara;
+					}
+				}
+			my $maxChrSize=findChrSize($chr_ref[-1]);
+			if (!$maxChrSize) { MyLib::Messages::forgot($chr_ref[-1]);}
+			print OUTFILE "$ref_org[-1]\t$chr_ref[-1]\t$tar_org[-1]\t$brk_cor1[-1]\t$maxChrSize\tPseudoBreak\t0\t0\t0\t0\t0\t0\n";
+			$chr_num=$tmp[1];
+
+			undef @ref_org; undef @chr_ref; undef @brk_cor1; undef @brk_cor2; undef @tar_org; undef @sign, undef @chrId, undef @chrStart, undef @chrEnd;
+
+			push @ref_org, $tmp[0];
+			push @chr_ref, $tmp[1];
+			push @brk_cor1, $tmp3cor1;
+			push @brk_cor2, $tmp2cor2;
+
+			push @tar_org, $tmp[8];
+			push @chrId, $tmp[4];
+			push @chrStart, $tmp[5];
+			push @chrEnd, $tmp[6];
+			push @sign, $tmp[7];
+			
+		if ($tmp[1]) { print OUTFILE "$tmp[0]\t$tmp[1]\t$tmp[8]\t1\t$tmp2cor2\tPseudoBreak\t0\t0\t0\t0\t0\t0\n";}
+			}
+}
+undef @ref_org; undef @chr_ref; undef @brk_cor1; undef @brk_cor2; undef @tar_org; undef @sign, undef @chrId, undef @chrStart, undef @chrEnd;
+} ##create breaks ends here 
+
+
+sub createBreaksScaffolds {
+
+my ($sorted_array_ref, $increase, $InFile, $scaffData_ref)= @_;
+my @sorted_array=@$sorted_array_ref;
+my %scaffData=%$scaffData_ref;
+
+#print map { "$_ $scaffData{$_}\n" } keys %scaffData;
+
+my $count; my $chr_num;
+my (@ref_org, @chr_ref, @brk_cor1, @brk_cor2, @tar_org, @scaffId, @scaffStart, @scaffEnd, @sign);
+my $telomere1=0;
+foreach my $line (@sorted_array) {
+	chomp $line; 
+	$line=lc($line);
+	if ($line =~ /^\s*#/) { next; }
+	if ($line =~ /^$/) { next;}
+	$count++;
+	my @tmp = split/\t/, lc($line);
+	for (@tmp)  { s/^\s+//; s/\s+$//; } #replace one or more spaces 
+	if ($count == 1) { $chr_num = $tmp[1];}
+
+	##--------------------- increase or decrease the breakpoints size start -----------
+ 
+	if ($line =~ /^\=/) { $tmp[1]=0; $tmp[2]=0; $tmp[3]=0; }         ## change here in increments
+	my $tmp3cor1=$tmp[3]-$increase;      
+	my $tmp2cor2=$tmp[2]+$increase;
+
+	##-------------------- increase or decrease the breakpoints size end ----------- 
+
+		if ($tmp[1] eq $chr_num) {
+		
+		if ($telomere1 == 0) { print OUTFILE "$tmp[0]\t$tmp[1]\t$tmp[8]\t1\t$tmp2cor2\tPseudoBreak\t0\t0\t0\t0\t0\t0\n"; $telomere1 = 1}
+		
+			push @ref_org, $tmp[0];
+			push @chr_ref, $tmp[1];
+			push @brk_cor1, $tmp3cor1;
+			push @brk_cor2, $tmp2cor2;
+
+			push @tar_org, $tmp[8];
+			push @scaffId, $tmp[4];
+			push @scaffStart, $tmp[5];
+			push @scaffEnd, $tmp[6];
+			push @sign, $tmp[7];
+			}
+
+		else    {
+			for my $x(0.. $#ref_org) {
+				if ($x != $#ref_org) {
+					my $Id=$scaffId[$x];
+					my @AllValuesFirst; my $decision; my $pahalaCor=0; my $dusaraCor=0; my $flagFirst;
+					my @keysFirst = grep { $scaffData{$_} eq $Id } keys %scaffData; ## grep key if values match
+						foreach (@keysFirst) { my @KvaluesFirst=split (/\:/, $_); foreach (@KvaluesFirst) { push @AllValuesFirst, $_;} }
+						@AllValuesFirst=sort {$a <=> $b} (@AllValuesFirst);
+						#foreach (@AllValuesFirst) { print "$_\t"; } print "\n"; exit;
+						my @scaffBeginEndFirst = ($AllValuesFirst[0], $AllValuesFirst[-1]);
+						if ($sign[$x] eq "-") { $pahalaCor=$scaffStart[$x];} else { $pahalaCor=$scaffEnd[$x];}
+
+							my $resFirst=MyLib::CommonSubs::isInList($pahalaCor, @scaffBeginEndFirst); 
+							if ((scalar(@AllValuesFirst) > 2) and ($resFirst == 0)) {
+								$flagFirst="YES";
+							}
+							else {
+								$flagFirst="NO";
+							}
+					my @AllValuesSecond; my $nextId=$x+1; my $flagSecond; my $newId =$scaffId[$nextId];
+					my @keysSecond = grep { $scaffData{$_} eq $newId } keys %scaffData; ## grep key if values match
+						foreach (@keysSecond) { my @KvaluesSecond=split (/\:/, $_); foreach (@KvaluesSecond) { push @AllValuesSecond, $_;} }
+						@AllValuesSecond=sort {$a <=> $b} (@AllValuesSecond);
+						
+						my @scaffBeginEndSecond = ($AllValuesSecond[0], $AllValuesSecond[-1]);
+						if ($sign[$nextId] eq "-") { $dusaraCor=$scaffEnd[$nextId];} else { $dusaraCor=$scaffStart[$nextId];}
+						my $resSecond=MyLib::CommonSubs::isInList($dusaraCor, @scaffBeginEndSecond);
+
+							if ((scalar(@AllValuesSecond) > 2) and ($resSecond == 0)) {
+								$flagSecond="YES";
+							}
+							else {
+								$flagSecond="NO";
+							}
+						#if ($sign[$nextId] eq "-") { $dusaraCor=$scaffEnd[$nextId];} else { $dusaraCor=$scaffStart[$nextId];}
+						
+							if (($flagFirst eq "YES") or ($flagSecond eq "YES")) { 
+								$decision = "Break";
+							} 
+							else { 
+								$decision = "PseudoBreak";
+							}
+							undef @AllValuesFirst;
+							undef @AllValuesSecond;
+							my $targetSpeciesCorPahala=$pahalaCor+1; ## added for getting target species coordinates ... If increasing the size we need to think of it !!!!!
+							my $targetSpeciesCorDusara=$dusaraCor-1;
+							print OUTFILE "$ref_org[$x]\t$chr_ref[$x]\t$tar_org[$x]\t$brk_cor1[$x]\t$brk_cor2[$x+1]\t$decision\t$Id\t$pahalaCor\t$targetSpeciesCorPahala\t$newId\t$targetSpeciesCorDusara\t$dusaraCor\n";
+								if ($brk_cor1[$x] >= $brk_cor2[$x+1]) { 
+									MyLib::Messages::confused($InFile,$chr_ref[$x],$brk_cor1[$x],$brk_cor2[$x+1]);
+						
+						}
+					undef $targetSpeciesCorPahala; undef $targetSpeciesCorDusara;
+					}
+				}
+				
+			my $maxChrSize=findChrSize($chr_ref[-1]);
+			if (!$maxChrSize) { MyLib::Messages::forgot($chr_ref[-1]);}
+			print OUTFILE "$ref_org[-1]\t$chr_ref[-1]\t$tar_org[-1]\t$brk_cor1[-1]\t$maxChrSize\tPseudoBreak\t0\t0\t0\t0\t0\t0\n";
+			$chr_num=$tmp[1];
+
+			undef @ref_org; undef @chr_ref; undef @brk_cor1; undef @brk_cor2; undef @tar_org;undef @scaffId; undef @scaffStart; undef @scaffEnd; undef @sign;
+
+			push @ref_org, $tmp[0];
+			push @chr_ref, $tmp[1];
+			push @brk_cor1, $tmp3cor1;
+			push @brk_cor2, $tmp2cor2;
+
+			push @tar_org, $tmp[8];
+			push @scaffId, $tmp[4];
+			push @scaffStart, $tmp[5];
+			push @scaffEnd, $tmp[6];
+			push @sign, $tmp[7];
+			
+		if ($tmp[1]) { print OUTFILE "$tmp[0]\t$tmp[1]\t$tmp[8]\t1\t$tmp2cor2\tPseudoBreak\t0\t0\t0\t0\t0\t0\n";}
+			}
+}
+undef @ref_org; undef @chr_ref; undef @brk_cor1; undef @brk_cor2; undef @tar_org; undef @scaffId; undef @scaffStart; undef @scaffEnd; undef @sign;
+} ##create breaks ends here 
+
+##Find the maximum chromosome size
+
+sub findChrSize {
+my $chr=shift;
+my %hash;
+open(CHRFILE, "chr_size.txt") || warn MyLib::Messages::noChrOp();
+while (<CHRFILE>) { chomp; $_=MyLib::CommonSubs::trim($_); my ($key, $val) = split /\t/, lc($_); $hash{$key} = $val;} ### We can read and store it ... !!!!
+close CHRFILE or die MyLib::Messages::noChrCl();
+#foreach my $key ( sort {$a <=> $b} keys %hash){ push (@arrayChr, $key); } ## Store the chromosome data
+
+return $hash{$chr};
+}
+
+
+1;
