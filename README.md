@@ -20,7 +20,7 @@
 ## 🚀 Getting Started
 ### Prerequisite
 ##### 1. Sample input data
-link for sample data https://figshare.com/s/5486d51b2d471de1f523
+link for sample data https://figshare.com/s/aa65811de8a621966792
 
 ##### 2. Conda Installation
 
