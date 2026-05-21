@@ -20,7 +20,11 @@
 ## 🚀 Getting Started
 ### Prerequisite
 ##### 1. Sample input data
-link for sample data https://figshare.com/s/aa65811de8a621966792
+###### Fast track: 
+Example input files with pre-computed alignments:https://doi.org/10.6084/m9.figshare.32315682
+
+###### Slow track:
+Example input files without pre-computed alignments:https://doi.org/10.6084/m9.figshare.32315892
 
 ##### 2. Conda Installation
 
