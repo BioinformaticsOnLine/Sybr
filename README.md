@@ -14,12 +14,17 @@
 *   **Enrichment Analysis:** Perform functional enrichment on identified regions using getENRICH.
 *   **Modular Workflow:** Flexible `config.yaml` to run specific stages of the analysis.
 
-<img width="1317" height="650" alt="Copy of Input folder" src="https://github.com/user-attachments/assets/0818ba54-2ebc-4009-b26b-a7fbc2b2b87b" />
+<img width="3352" height="1895" alt="Copy of Input folder (4)" src="https://github.com/user-attachments/assets/69d4d8cc-7dc1-4266-ada8-dce818350edc" />
+
 
 ## 🚀 Getting Started
 ### Prerequisite
 ##### 1. Sample input data
-link for sample data https://figshare.com/s/5486d51b2d471de1f523
+###### Fast track: 
+Example input files with pre-computed alignments:https://doi.org/10.6084/m9.figshare.32315682
+
+###### Slow track:
+Example input files without pre-computed alignments:https://doi.org/10.6084/m9.figshare.32315892
 
 ##### 2. Conda Installation
 
@@ -78,44 +83,27 @@ The link for sample data given above. To use this sample data, downloa this data
 
 ##### 1. Input Folder Structure
 ```
-inputs/
-│
-├── Ancestor_seq_recunstruction/          # Stages ④ chainNet + ⑤ Ancestor reconstruction
-│   ├── LastZ_alignments/
-│   │   ├── habrotrocha.axt               # one .axt per non-reference species
-│   │   ├── ricciae.axt
-│   │   ├── roseola.axt
-│   │   ├── rotatoria.axt
-│   │   └── vagaN.axt
-│   ├── seq/
-│   │   ├── habrotrocha.fa                # query + reference FASTA (.fa / .fasta / .fna)
-│   │   ├── ricciae.fa
-│   │   ├── roseola.fa
-│   │   ├── rotatoria.fa
-│   │   ├── vaga.fa
-│   │   ├── vagaN.fa
-│   │   └── refSpecies.fa                 # reference genome must also be present
-│   ├── species_info.txt                  # fixed filename — see format below
-│   └── tree.txt                          # Newick tree — same names as all other files
-│
-├── eba_analysis/                         # Stage ② EBA analysis
-│   ├── chr_size.txt                      # fixed filename — reference chromosomes only
-│   ├── classification.eba                # fixed filename — must contain lineage= entry
-│   └── reference.fasta                   # reference genome FASTA 
-│
-├── enrichment_analysis/                  # Stage ③ Enrichment analysis
-│   ├── 3kegg_annotationTOgenes.txt       # fixed filename — required when getenrich.r: "ko"
-│   └── protein_annotation.tsv            # fixed filename — 5-column TSV, no header
-│
-└── synteny_processing/                   # Stage ① Synteny processing
-    ├── all_sequence_lengths.txt          # fixed filename — generate with genome_length_maker.sh
-    ├── Satsuma_alignments/
-    │   ├── Adineta_ricciae.txt           # one .txt per query species (Satsuma output)
-    │   ├── Adineta_vaga2.txt
-    │   ├── Habrotrocha_rosa.txt
-    │   ├── Philodina_roseola.txt
-    │   └── Rotaria_rotatoria.txt
-    └── Scaffolds.txt                     # scaffold-level species list (or set ALL_CHROMOSOMES)
+fast_track
+├── Ancestor_seq_recunstruction
+│   ├── LastZ_alignments
+│   │   ├── sps2.axt
+│   │   └── sps3.axt
+│   ├── species_info.txt
+│   └── tree.txt
+├── eba_analysis
+│   └── classification.eba
+├── enrichment_analysis
+│   └── protein_annotation.tsv
+├── fasta
+│   ├── Genus_sps1.fa
+│   ├── Genus_sps2.fa
+│   └── Genus_sps3.fa
+└── synteny_processing
+    ├── all_sequence_lengths.txt
+    └── Satsuma_alignments
+        ├── Genus_sps2.txt
+        └── Genus_sps3.txt
+
 ```
 
 > **Fixed filename** — must use the exact name shown; the pipeline looks for it by name.  
@@ -172,36 +160,38 @@ Strand must be `+` or `-`.
 - In **reference_species** provide the species name of referance only and in **referance_name** and **r:** provide genus and species name of referance.
 - for **r:** in **getenrich** provide **KEGG Organism code**. user can check the availability of KEGG organims code in https://www.genome.jp/kegg/tables/br08606.html. if KEGG organism code is not availabe the user can use **ko**. for this option user need to provide kegg annotation file. to get the information about preparation of kegg annotation file refer to https://getenrich.igib.res.in/assets/files/getENRICH-documentation.pdf 
 ```bash
-# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 #  run_sybr_config.yaml  —  User-facing config
 #  Edit this file to control pipeline behaviour
-# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ── Base I/O directories ────────────────────
-base_input_dir:  "/home/ajay/ajay_bhatia/my_writings/sybr/sybr_test4/inputs"
-base_output_dir: "/home/ajay/ajay_bhatia/my_writings/sybr/sybr_test4/outputs"
+# ── Base I/O directories ────────────────────────────────────────────────────
+# Set these to absolute paths if your inputs/outputs live outside the
+# workflow directory.  Leave them as "inputs" / "outputs" to use the
+# default folders relative to the workflow root.
+base_input_dir:  "/home/ajay.bhatia/Ajay_Bhatia/lab/Sybr-GUI7/mukul/inputs"
+base_output_dir: "/home/ajay.bhatia/Ajay_Bhatia/lab/Sybr-GUI7/mukul/outputs"
 
-# ── Pipeline stages to run ──────────────────
+# ── Pipeline stages to run ──────────────────────────────────────────────────
 run_stages:
+  run_satsuma_alignment: false
+  run_lastz_alignment: false
   synteny_processing: true
-  eba_analysis: true
-  enrichment_analysis: true
-  chainNet_generation: true
-  Ancestor_seq_recunstruction: true
+  eba_analysis: false
+  enrichment_analysis: false
+  chainNet_generation: false
+  Ancestor_seq_recunstruction: false
 
-# ── Species / reference names ───────────────
-reference_name: "Adineta_vaga"
-reference_species: "vaga"
+# ── Species / reference names ───────────────────────────────────────────────
+reference_name: "reference_sps"
+reference_species: "sps"
 
-# ── EBA parameters (user-facing) ───────────────────────────────
+# ── EBA parameters (user-facing) ───────────────────────────────────────────
 eba:
-  n: 5           # number of EBA iterations
-  r: "Adineta_vaga"  # reference species name
-  p: 300         # primary resolution parameter
+  n: 2           # number of EBA iterations
+  r: "Genus_sps1"  # reference species name
+  p: 60         # resolution parameter  # M
 
-# ── Enrichment KEGG options ─────────────────
-getenrich:
-  r: "ko"  # KEGG code, or model-organism code
 
 ```
 
