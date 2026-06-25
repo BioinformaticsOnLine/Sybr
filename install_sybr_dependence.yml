@@ -1,0 +1,56 @@
+name: sybr
+channels:
+  - jitendralab
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # Core
+  - python=3.11
+  - snakemake=9.12.0
+
+  # UCSC tools
+  - ucsc-fatotwobit
+  - ucsc-axtchain
+  - ucsc-chainsplit
+  - ucsc-fasize
+  - ucsc-chainprenet
+  - ucsc-chainnet
+  - ucsc-netsyntenic
+
+  # R base
+  - r-base=4.3.*
+
+  # CRAN R packages
+  - r-jsonlite
+  - r-dplyr
+  - r-tidyverse
+  - r-ggplot2
+  - r-ontologyindex
+  - r-plotly>=4.10
+  - r-upsetr
+  - r-visnetwork
+  - r-circlize
+  - r-pheatmap
+
+  # Bioconductor packages
+  - bioconductor-clusterprofiler
+  - bioconductor-enrichplot
+  - bioconductor-complexheatmap
+  - bioconductor-pathview
+
+  # Perl and modules
+  - perl
+  - perl-math-round
+  - perl-list-compare
+  - perl-bioperl
+  - perl-array-utils 
+
+  # Bioinformatics tools
+  - seqkit
+  - lastZ
+
+  # R packages from jitendralab
+  - jitendralab::r-syntenyplotter>=1.0.2
+  - jitendralab::syntenytracker2>=2.0.1
