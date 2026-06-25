@@ -2,6 +2,9 @@
 
 import os
 import glob
+import sys
+import subprocess
+import tempfile
 
 # Load static paths first, then user config.
 # Snakemake does a SHALLOW merge of top-level keys, so dict-valued keys like
@@ -232,8 +235,12 @@ RUN_STAGES      = config["run_stages"]
 #   • filename  : genus prefix stripped  → sps1.fa  (not Genus_sps1.fa)
 #   • headers   : plain numbers prefixed → >chr1    (not >1)
 # The original fasta_dir is kept intact; converted copies go to chr_fasta_dir.
+# chr-FASTA (short filenames + >chr* headers) is only needed by the
+# chainNet / LastZ / Ancestor modules.  Satsuma, synteny_processing,
+# eba_analysis, and enrichment_analysis use the original FASTA files
+# (Genus_sps1.fa with plain numeric headers like >1, >2 …).
 _NEEDS_CHR_FASTA = (
-    RUN_STAGES.get("run_satsuma_alignment", False)
+    RUN_STAGES.get("run_lastz_alignment", False)
     or RUN_STAGES.get("chainNet_generation", False)
     or RUN_STAGES.get("Ancestor_seq_recunstruction", False)
 )
@@ -341,6 +348,67 @@ if _NEEDS_CHR_FASTA:
             echo -e "\e[32;1m✔\e[0m \e[33;1mCompleted\e[0m all chr-FASTA preparations" >&2
             """
 
+    # ── Cleanup: remove fasta_chr once all consumers have finished ────────────
+    # The .fa files in fasta_chr/ are read only by fasta_to_2bit and
+    # generate_chrom_sizes, which produce .2bit and .size files respectively.
+    # Everything downstream (axt_to_chain, chainPreNet, chainNet, netSyntenic,
+    # reorganize_data, deschrambler) uses only those derived files, so it is
+    # safe to delete fasta_chr/ as soon as all .2bit and .size files exist.
+    # Only defined when chainNet_generation is active (it owns those rules).
+    if RUN_STAGES.get("chainNet_generation", False):
+        _CHAIN_OUT = config["chainNet"].get("output_dir", ".")
+
+        rule cleanup_chr_fasta:
+            """Delete fasta_chr/ after all consumers have finished.
+
+            Waits for:
+              • all .2bit files  (fasta_to_2bit)
+              • all .size files  (generate_chrom_sizes)
+              • lastz_alignment_all marker (run_lastz reads .fa files directly)
+              • satsuma_alignment_all marker (run_satsuma reads .fa files directly)
+            Only the markers that correspond to active modules are included.
+            """
+            input:
+                twobit = expand(_CHAIN_OUT + "/2bit/{species}.2bit",
+                                species=_CHR_FASTA_SPECIES),
+                sizes  = expand(_CHAIN_OUT + "/fasize/{species}.size",
+                                species=_CHR_FASTA_SPECIES),
+                # Wait for LastZ / Satsuma alignments to finish — those rules
+                # read the .fa files directly and must complete before deletion.
+                # run_lastz reads .fa files directly; wait for it to finish
+                lastz_done = (
+                    [os.path.join(config["lastz_align"]["output_dir"], ".lastz_alignment_done")]
+                    if RUN_STAGES.get("run_lastz_alignment", False)
+                    else []
+                )
+                # Note: run_satsuma_alignment uses the ORIGINAL fasta_dir, not
+                # CHR_FASTA_DIR, so no dependency on satsuma_done needed here.
+            output:
+                touch(_CHAIN_OUT + "/.chr_fasta_cleanup_done")
+            params:
+                chr_fasta_dir = CHR_FASTA_DIR
+            shell:
+                r"""
+                set -euo pipefail
+                echo -e "\e[33;1mCleaning up\e[0m chr-FASTA directory: {params.chr_fasta_dir}" >&2
+
+                # Safety: confirm all derived files exist before deleting anything
+                MISSING=0
+                for f in {input.twobit} {input.sizes}; do
+                    if [ ! -f "$f" ]; then
+                        echo "  ERROR: expected derived file missing: $f" >&2
+                        MISSING=1
+                    fi
+                done
+                if [ "$MISSING" -eq 1 ]; then
+                    echo "  Aborting cleanup — some derived files are missing." >&2
+                    exit 1
+                fi
+
+                rm -rf "{params.chr_fasta_dir}"
+                echo -e "\e[32;1m✔\e[0m \e[33;1mRemoved\e[0m chr-FASTA directory: {params.chr_fasta_dir}" >&2
+                """
+
 # Define ebrs_dir globally
 ebrs_dir = config["eba_format"].get("ebrs_dir", "EBRs")
 
@@ -363,6 +431,43 @@ except PermissionError:
         f"Check that base_output_dir in run_sybr_config.yaml points to a writable location.\n"
         f"Current value: {config.get('base_output_dir', '(not set)')}"
     )
+
+# ── Pre-flight input validation ──────────────────────────────────────────────
+# Calls validate_satsuma_files.py with the fully merged + rebased config so
+# every required input file/directory is checked before the DAG is built.
+def _run_input_validation(cfg):
+    validator = os.path.join(workflow.basedir, "script_base", "validate_satsuma_files.py")
+    if not os.path.isfile(validator):
+        print(f"[config] WARNING: Input validator not found at {validator} — skipping pre-flight check")
+        return
+
+    try:
+        import yaml as _yaml_val
+    except ImportError:
+        print("[config] WARNING: PyYAML not available — skipping pre-flight input check")
+        return
+
+    # Dump the merged + rebased config to a temp file so the validator can read it
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as _tmp:
+        _yaml_val.dump(dict(cfg), _tmp)
+        _tmp_path = _tmp.name
+
+    try:
+        result = subprocess.run(
+            [sys.executable, validator, "--config", _tmp_path]
+        )
+        if result.returncode != 0:
+            raise ValueError(
+                "[config] Pre-flight input validation failed.\n"
+                "Resolve the missing files / directories listed above, then re-run."
+            )
+    finally:
+        try:
+            os.unlink(_tmp_path)
+        except OSError:
+            pass
+
+_run_input_validation(config)
 
 # ── Sample discovery ─────────────────────────────────────────────────────────
 if RUN_STAGES.get("synteny_processing", True):
@@ -414,10 +519,13 @@ else:
 def get_conditional_inputs():
     inputs = []
 
-    # If chr-FASTA preparation is needed (satsuma / chainNet / ancestor),
-    # require the preparation marker before anything else in those modules.
-    if _NEEDS_CHR_FASTA:
-        inputs.append(CHR_FASTA_DIR + "/.chr_fasta_done")
+    # NOTE: CHR_FASTA_DIR/.chr_fasta_done is intentionally NOT listed here.
+    # It is an intermediate marker used only for rule-to-rule dependency
+    # chaining (via chr_ready inputs in fasta_to_2bit / run_satsuma /
+    # run_lastz).  The cleanup rule deletes the whole fasta_chr/ directory
+    # (including that marker), so listing it here would cause a MissingFiles
+    # error in the final 'all' rule.  The cleanup marker below already proves
+    # the full preparation + consumption chain completed successfully.
 
     # If de-novo alignment is active, require its completion marker first
     if RUN_STAGES.get("run_satsuma_alignment", False):
@@ -427,14 +535,18 @@ def get_conditional_inputs():
     # Synteny processing outputs (only if enabled)
     if RUN_STAGES.get("synteny_processing", True) and SAMPLES:
         inputs.extend([
-            expand(f"{SYNTENY_RESULTS}/{{sample}}_out/st_input", sample=SAMPLES),
+            expand(
+                f"{SYNTENY_RESULTS}/{{sample}}_out/{{window_size}}/st_input",
+                sample=SAMPLES,
+                window_size=WINDOW_SIZES
+            ),
         ])
 
         # Add outputs for each window size dynamically
         for window_size in WINDOW_SIZES:
             inputs.extend(
                 expand(
-                    f"{SYNTENY_RESULTS}/synteny_out/{window_size}/{{sample}}_out/synteny_assign_done",
+                    f"{SYNTENY_RESULTS}/synteny_results/{window_size}/{{sample}}_out/synteny_assign_done",
                     sample=SAMPLES
                 )
             )
@@ -544,47 +656,78 @@ def get_conditional_inputs():
             f"{ALIGN_OUTPUT}/deschrambler.done"
         ])
 
+    # chr-FASTA cleanup (only when chainNet_generation is active and chr-FASTA
+    # was prepared — cleanup_chr_fasta deletes fasta_chr/ after all .2bit and
+    # .size files exist, so it must come after deschrambler in this list to
+    # ensure Snakemake sees it as a required final target)
+    if _NEEDS_CHR_FASTA and RUN_STAGES.get("chainNet_generation", False):
+        ALIGN_OUTPUT = config["chainNet"].get("output_dir", ".")
+        inputs.append(f"{ALIGN_OUTPUT}/.chr_fasta_cleanup_done")
+
     return inputs
 
 # Helper functions for other modules
 def get_fasta_species():
     """Get species list for fasta_to_2bit and fasize rules.
 
-    The {species} wildcard used throughout chainNet_generation is the .axt file
-    stem — that is the authoritative name for every query species, regardless of
-    how FASTA files happen to be named.  This function therefore derives the list
-    the same way get_alignment_species() does (from .axt stems) and then adds the
-    reference so that fasta_to_2bit and fasize also run for the reference genome.
+    When run_lastz_alignment is ON, .axt files don't exist at DAG-build time
+    so globbing LASTZ_ALIGNMENTS returns [].  In that case we derive the query
+    species list from the original fasta_dir (always present) using the same
+    short-name convention as lastz_alignment.smk, then add the reference.
 
-    FASTA lookup (_fa_for_species in alignment_processing.smk) handles the
-    .axt-stem → FASTA-path resolution by indexing each FASTA under multiple keys
-    (genus, species, full stem) so any reasonable .axt naming convention works.
+    When run_lastz_alignment is OFF, pre-computed .axt files exist and we use
+    their stems as before.
     """
     if not RUN_STAGES.get("chainNet_generation", True):
         return []
-    # Query species = .axt stems (excludes reference, same as get_alignment_species)
-    axt_files = glob.glob(f"{LASTZ_ALIGNMENTS}/*.axt")
-    query_species = [
-        os.path.splitext(os.path.basename(f))[0]
-        for f in axt_files
-        if os.path.splitext(os.path.basename(f))[0] != REFERENCE
-    ]
-    # Reference short name derived from reference_name (e.g. "Adineta_vaga" → "vaga")
-    ref_short = REFERENCE  # REFERENCE is already the short name from config
-    return sorted(set(query_species + [ref_short]))
+
+    if RUN_STAGES.get("run_lastz_alignment", False):
+        # Derive from original FASTA stems — .axt files don't exist yet
+        _orig_dir = config.get("satsuma_align", {}).get("fasta_dir", "")
+        _stems = []
+        for _ext in (".fa", ".fna", ".fasta"):
+            for _f in glob.glob(os.path.join(_orig_dir, f"*{_ext}")):
+                _full = os.path.splitext(os.path.basename(_f))[0]
+                _short = _full.split("_", 1)[-1]
+                _stems.append(_short)
+        return sorted(set(_stems))   # includes reference short name
+    else:
+        axt_files = glob.glob(f"{LASTZ_ALIGNMENTS}/*.axt")
+        query_species = [
+            os.path.splitext(os.path.basename(f))[0]
+            for f in axt_files
+            if os.path.splitext(os.path.basename(f))[0] != REFERENCE
+        ]
+        ref_short = REFERENCE
+        return sorted(set(query_species + [ref_short]))
 
 def get_alignment_species():
-    """Get list of query species from .axt files (excludes reference).
-    Uses LASTZ_ALIGNMENTS (already redirected when run_lastz_alignment is on).
+    """Get list of query species (excludes reference).
+
+    When run_lastz_alignment is ON, derives from original fasta_dir stems
+    (same logic as get_fasta_species but excludes the reference).
+    When OFF, uses existing .axt file stems.
     """
     if not RUN_STAGES.get("chainNet_generation", True):
         return []
-    axt_files = glob.glob(f"{LASTZ_ALIGNMENTS}/*.axt")
-    return [
-        os.path.splitext(os.path.basename(f))[0]
-        for f in axt_files
-        if os.path.splitext(os.path.basename(f))[0] != REFERENCE
-    ]
+
+    if RUN_STAGES.get("run_lastz_alignment", False):
+        _orig_dir = config.get("satsuma_align", {}).get("fasta_dir", "")
+        _stems = []
+        for _ext in (".fa", ".fna", ".fasta"):
+            for _f in glob.glob(os.path.join(_orig_dir, f"*{_ext}")):
+                _full = os.path.splitext(os.path.basename(_f))[0]
+                _short = _full.split("_", 1)[-1]
+                if _short != REFERENCE:
+                    _stems.append(_short)
+        return sorted(set(_stems))
+    else:
+        axt_files = glob.glob(f"{LASTZ_ALIGNMENTS}/*.axt")
+        return [
+            os.path.splitext(os.path.basename(f))[0]
+            for f in axt_files
+            if os.path.splitext(os.path.basename(f))[0] != REFERENCE
+        ]
 
 # Conditional rule function
 def should_run_rule(condition_key):

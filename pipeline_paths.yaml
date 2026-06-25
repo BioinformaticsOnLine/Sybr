@@ -91,3 +91,11 @@ deschrambler:
   pipeline_tool_dir: "tools/DESCHRAMBLER"
   tree_file:         "inputs/Ancestor_seq_recunstruction/tree.txt"
   species_file:      "inputs/Ancestor_seq_recunstruction/species_info.txt"
+
+# ── HGT overlap analysis ──────────────────────────────────────────────────────
+# Compares inputs/HGTs/hgt.txt against msHSBs, EBRs, and DESCHRAMBLER ancestoral genes (block_list.txt).
+# Results are written to outputs/hgt_overlap/ by default.
+# Override either path here if needed.
+hgt_overlap:
+  hgt_dir:    "inputs/HGTs"            # directory containing hgt.txt
+  output_dir: "outputs/hgt_overlap"    # where overlap results are written

@@ -7,26 +7,27 @@
 # Set these to absolute paths if your inputs/outputs live outside the
 # workflow directory.  Leave them as "inputs" / "outputs" to use the
 # default folders relative to the workflow root.
-base_input_dir:  "/home/ajay.bhatia/Ajay_Bhatia/lab/Sybr-GUI7/inputs"
-base_output_dir: "/home/ajay.bhatia/Ajay_Bhatia/lab/Sybr-GUI7/outputs"
+base_input_dir:  "/home/ajay/ajay_bhatia/sybr_update/Sybr/inputs2"
+base_output_dir: "/home/ajay/ajay_bhatia/sybr_update/Sybr/output2"
 
 # ── Pipeline stages to run ──────────────────────────────────────────────────
 run_stages:
-  run_satsuma_alignment: true
-  run_lastz_alignment: true
+  run_satsuma_alignment: false
+  run_lastz_alignment: false
   synteny_processing: true
   eba_analysis: true
-  enrichment_analysis: false
+  enrichment_analysis: true
   chainNet_generation: true
   Ancestor_seq_recunstruction: true
+  hgt_overlap_analysis: false
 
 # ── Species / reference names ───────────────────────────────────────────────
-reference_name: "Genus_sps1"
-reference_species: "sps1"
+reference_name: "Adineta_vaga"
+reference_species: "vaga"
 
 # ── EBA parameters (user-facing) ───────────────────────────────────────────
 eba:
-  n: 2           # number of EBA iterations
-  r: "Genus_sps1"  # reference species name
-  p: 60         # resolution parameter  # M
+  n: 5           # number of EBA iterations
+  r: "Adineta_vaga"  # reference species name
+  p: 300         # resolution parameter  # M
 

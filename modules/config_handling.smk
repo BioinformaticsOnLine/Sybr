@@ -655,6 +655,30 @@ def get_conditional_inputs():
         inputs.extend([
             f"{ALIGN_OUTPUT}/deschrambler.done"
         ])
+    # HGT overlap outputs — each sub-analysis is gated on its upstream stage
+    if RUN_STAGES.get("hgt_overlap_analysis", True):
+        _hgt_out_dir = config.get("hgt_overlap", {}).get(
+            "output_dir",
+            os.path.join(config.get("base_output_dir", "outputs"), "hgt_overlap")
+        )
+        # msHSBs and EBRs overlaps require eba_analysis
+        if RUN_STAGES.get("eba_analysis", True):
+            inputs.extend([
+                os.path.join(_hgt_out_dir, "hgt_overlapping_msHSBs.txt"),
+                os.path.join(_hgt_out_dir, "hgt_msHSBs_overlap_summary.txt"),
+                os.path.join(_hgt_out_dir, "hgt_overlapping_EBRs.txt"),
+                os.path.join(_hgt_out_dir, "hgt_EBRs_overlap_summary.txt"),
+            ])
+        # ancestoral_genes overlap requires Ancestor_seq_recunstruction (deschrambler)
+        if RUN_STAGES.get("Ancestor_seq_recunstruction", True):
+            inputs.extend([
+                os.path.join(_hgt_out_dir, "hgt_overlapping_ancestoral_genes.txt"),
+                os.path.join(_hgt_out_dir, "hgt_ancestoral_genes_overlap_summary.txt"),
+            ])
+        # Interactive HTML tree requires both eba_analysis and Ancestor_seq_recunstruction
+        if RUN_STAGES.get("eba_analysis", True) and RUN_STAGES.get("Ancestor_seq_recunstruction", True):
+            inputs.append(os.path.join(_hgt_out_dir, "hgt_tree.html"))
+
 
     # chr-FASTA cleanup (only when chainNet_generation is active and chr-FASTA
     # was prepared — cleanup_chr_fasta deletes fasta_chr/ after all .2bit and
