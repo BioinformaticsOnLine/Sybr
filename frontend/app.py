@@ -97,6 +97,13 @@ html, body, [class*="css"] {
 div[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0f0c29, #1a1a2e);
 }
+
+div[data-testid="stSidebar"] .stButton > button {
+    min-height: 3rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 12px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -163,9 +170,42 @@ def status_badge(status):
     return f'<span class="status-badge status-{status}">{status.upper()}</span>'
 
 
-# ── Sidebar: API Key & Navigation ────────────────────────────────────────────
+# ── Sidebar: Tool info, navigation, sample data, API key ─────────────────────
 
 with st.sidebar:
+    st.markdown("# SyBR")
+    st.markdown("**Multi-species synteny analysis and ancestral genome reconstruction toolkit**")
+    st.caption(
+        "Automated modular workflow for conserved genomic blocks, evolutionary "
+        "breakpoints, ancestral genome reconstruction, and enrichment analysis."
+    )
+
+    st.divider()
+
+    if "page" not in st.session_state:
+        st.session_state["page"] = "🧬 Submit Job"
+
+    st.markdown("## Navigation")
+    if st.button("🧬 Submit Job", use_container_width=True):
+        st.session_state["page"] = "🧬 Submit Job"
+    if st.button("🔍 Check Job", use_container_width=True):
+        st.session_state["page"] = "🔍 Check Job"
+    if st.button("📋 All Jobs (Admin)", use_container_width=True):
+        st.session_state["page"] = "📋 All Jobs (Admin)"
+
+    page = st.session_state["page"]
+
+    st.divider()
+
+    st.markdown("## 📦 Sample input data")
+    st.caption("Example input files with pre-computed alignments:")
+    st.link_button(
+        "Download sample data",
+        "https://doi.org/10.6084/m9.figshare.32315682",
+        use_container_width=True,
+    )
+
+    st.divider()
     st.markdown("## 🔑 API Connection")
     
     # If the key is provided via secrets/env, use it and don't require user input
@@ -191,13 +231,6 @@ with st.sidebar:
             connected = True
         else:
             st.error("Invalid API key")
-
-    st.divider()
-    page = st.radio(
-        "Navigation",
-        ["🧬 Submit Job", "🔍 Check Job", "📋 All Jobs (Admin)"],
-        label_visibility="collapsed",
-    )
 
 if not connected:
     st.markdown("""
@@ -367,7 +400,7 @@ if page == "🧬 Submit Job":
     st.markdown("### 🔧 Pipeline Stages")
     st.caption("Select stages to run. Some stages depend on others — dependencies are enforced automatically.")
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
 
     with c1:
         run_synteny = st.checkbox("① Synteny Processing", value=True, key="stg_synteny")
@@ -397,6 +430,15 @@ if page == "🧬 Submit Job":
             disabled=not run_chainnet,
             help="Requires ④ ChainNet Generation",
         )
+    hgt_enabled = (run_synteny and run_eba) or (run_chainnet and run_ancestor)
+    with c6:
+        run_hgt = st.checkbox(
+            "⑥ HGT Overlap",
+            value=False,
+            key="stg_hgt",
+            disabled=not hgt_enabled,
+            help="Requires ② EBA Analysis and/or ⑤ Ancestor Reconstruction",
+        )
 
     # Force-off dependent stages if parent is unchecked
     if not run_synteny:
@@ -406,6 +448,8 @@ if page == "🧬 Submit Job":
         run_enrich = False
     if not run_chainnet:
         run_ancestor = False
+    if not (run_eba or run_ancestor):
+        run_hgt = False
 
     st.divider()
 
@@ -541,6 +585,21 @@ if page == "🧬 Submit Job":
     if run_ancestor and not run_chainnet:
         st.warning("⑤ Ancestor Reconstruction requires ④ ChainNet — please enable it.")
 
+    # ── Stage ⑥ HGT Overlap ─────────────────────────────────────────────
+    if run_hgt:
+        st.markdown("### ⑥ HGT Overlap Analysis Inputs")
+        st.caption(
+            "Upload `hgt.txt` with tab-separated HGT coordinates. "
+            "The pipeline will compare HGTs against available EBA and/or ancestral reconstruction outputs."
+        )
+        hgt_file = st.file_uploader(
+            "hgt.txt",
+            type=["txt"],
+            key="hgt_upload",
+        )
+        if hgt_file:
+            uploads["hgt"] = [hgt_file]
+
     st.divider()
 
     # ── Synteny parameters ───────────────────────────────────────────────
@@ -556,7 +615,7 @@ if page == "🧬 Submit Job":
             with c_s:
                 step_size = st.number_input("Step size (kb)", value=30, min_value=1, key="step")
             with c_c:
-                cores = st.number_input("CPU cores", value=4, min_value=1, max_value=64, key="cores")
+                cores = st.number_input("CPU cores", value=4, min_value=1, max_value=20, key="cores")
 
         try:
             window_sizes = [int(w.strip()) * 1000 for w in window_input.split(",")]
@@ -590,6 +649,8 @@ if page == "🧬 Submit Job":
             errors.append("LastZ .axt files are required for ChainNet Generation")
         if (run_synteny or run_chainnet) and not uploads.get("fasta"):
             errors.append("FASTA genome files are required")
+        if run_hgt and not uploads.get("hgt"):
+            errors.append("hgt.txt is required for HGT Overlap Analysis")
 
         if errors:
             for e in errors:
@@ -606,6 +667,7 @@ if page == "🧬 Submit Job":
                 "enrichment_analysis": run_enrich,
                 "chainNet_generation": run_chainnet,
                 "Ancestor_seq_recunstruction": run_ancestor,
+                "hgt_overlap_analysis": run_hgt,
             },
             "reference_name": reference_name,
             "reference_species": reference_species,

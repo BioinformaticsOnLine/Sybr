@@ -10,6 +10,8 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
+from api.config import DEFAULT_CORES, MAX_CORES_PER_JOB
+
 
 # ── Enums ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,7 @@ class FileCategory(str, Enum):
     classification = "classification"
     annotation = "annotation"
     kegg = "kegg"
+    hgt = "hgt"
 
 
 # ── Request models ───────────────────────────────────────────────────────────
@@ -44,6 +47,7 @@ class RunStages(BaseModel):
     enrichment_analysis: bool = True
     chainNet_generation: bool = True
     Ancestor_seq_recunstruction: bool = True
+    hgt_overlap_analysis: bool = False
 
 
 class EBAParams(BaseModel):
@@ -85,10 +89,10 @@ class JobSubmitRequest(BaseModel):
         description="Step size in bp for synteny assignment",
     )
     cores: int = Field(
-        default=4,
+        default=DEFAULT_CORES,
         ge=1,
-        le=64,
-        description="Number of CPU cores for this job",
+        le=MAX_CORES_PER_JOB,
+        description=f"Number of CPU cores for this job (max {MAX_CORES_PER_JOB})",
     )
 
 

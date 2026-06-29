@@ -18,6 +18,8 @@ module.exports = {
         SYBR_API_HOST: "0.0.0.0",
         SYBR_API_PORT: "8001",
         SYBR_MAX_JOBS: "2",
+        SYBR_MAX_CORES_PER_JOB: "20",
+        SYBR_DEFAULT_CORES: "4",
       },
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       out_file: "/home/pranjal.p/.pm2/logs/sybr-api-out.log",

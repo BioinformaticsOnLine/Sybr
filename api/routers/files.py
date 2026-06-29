@@ -40,6 +40,7 @@ async def upload_file(
     - **classification**: `inputs/eba_analysis/` (classification.eba)
     - **annotation**: `inputs/enrichment_analysis/` (protein_annotation.tsv)
     - **kegg**: `inputs/enrichment_analysis/` (3kegg_annotationTOgenes.txt)
+    - **hgt**: `inputs/HGTs/` (hgt.txt)
     """
     # Verify job exists and belongs to this key
     job = db.get_job(job_id)

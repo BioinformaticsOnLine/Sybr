@@ -38,6 +38,7 @@ def create_job_directory(job_id: str) -> Path:
         "Ancestor_seq_recunstruction/LastZ_alignments",
         "eba_analysis",
         "enrichment_analysis",
+        "HGTs",
     ]
 
     for subdir in subdirs:

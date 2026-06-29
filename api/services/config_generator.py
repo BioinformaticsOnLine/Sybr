@@ -38,6 +38,7 @@ def generate_job_config(
             "enrichment_analysis": request.run_stages.enrichment_analysis,
             "chainNet_generation": request.run_stages.chainNet_generation,
             "Ancestor_seq_recunstruction": request.run_stages.Ancestor_seq_recunstruction,
+            "hgt_overlap_analysis": request.run_stages.hgt_overlap_analysis,
         },
 
         # ── Species / reference names ────────────────────────────────────

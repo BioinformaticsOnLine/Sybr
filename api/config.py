@@ -44,6 +44,9 @@ MAX_CONCURRENT_JOBS = int(os.getenv("SYBR_MAX_JOBS", "2"))
 # Default number of cores per job
 DEFAULT_CORES = int(os.getenv("SYBR_DEFAULT_CORES", "4"))
 
+# Maximum Snakemake cores allowed per submitted job
+MAX_CORES_PER_JOB = int(os.getenv("SYBR_MAX_CORES_PER_JOB", "20"))
+
 # ── File upload settings ────────────────────────────────────────────────────
 
 # Maximum upload size per file (2 GB)
@@ -61,6 +64,7 @@ ALLOWED_EXTENSIONS = {
     "classification": {".eba"},
     "annotation": {".tsv"},
     "kegg": {".txt"},
+    "hgt": {".txt"},
 }
 
 # Category → subdirectory mapping inside a job's inputs/ folder
@@ -75,6 +79,7 @@ CATEGORY_PATHS = {
     "classification": "eba_analysis",
     "annotation": "enrichment_analysis",
     "kegg": "enrichment_analysis",
+    "hgt": "HGTs",
 }
 
 # ── Logging ──────────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ from pathlib import Path
 from api import database as db
 from api.config import (
     MAX_CONCURRENT_JOBS,
+    MAX_CORES_PER_JOB,
     PIPELINE_PATHS_YAML,
     SYBR_JOBS_DIR,
     SYBR_PIPELINE_DIR,
@@ -108,11 +109,14 @@ def _run_pipeline(job_id: str):
     except (json.JSONDecodeError, TypeError):
         config_data = {}
 
+    requested_cores = int(job.get("cores", 4) or 4)
+    cores = max(1, min(requested_cores, MAX_CORES_PER_JOB))
+
     cmd = [
         str(SYBR_RUNNER),
         "-c", str(config_path),
         "-P", str(PIPELINE_PATHS_YAML),
-        "-j", str(job.get("cores", 4)),
+        "-j", str(cores),
         "-s",  # skip validation (API does its own)
     ]
 
