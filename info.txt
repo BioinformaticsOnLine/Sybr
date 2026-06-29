@@ -1,0 +1,10 @@
+Command	What it does
+pm2 start ecosystem.config.js
+Start from scratch
+pm2 reload ecosystem.config.js
+Zero-downtime reload (after code changes)
+pm2 restart sybr-api
+Hard restart
+pm2 save
+Persist so it survives server reboot
+pm2 logs sybr-api

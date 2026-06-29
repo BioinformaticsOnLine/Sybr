@@ -3,7 +3,7 @@
 logs/
 outputs/
 inputs/
-
+jobs/
 
 # Marimo
 marimo/_static/
@@ -17,6 +17,12 @@ __marimo__/
 # IPython
 .profile_default/
 ipython_config.py
+
+# Python bytecode / caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 input/
 .snakemake
