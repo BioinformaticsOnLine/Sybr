@@ -14,7 +14,8 @@
 *   **Enrichment Analysis:** Perform functional enrichment on identified regions using getENRICH.
 *   **Modular Workflow:** Flexible `config.yaml` to run specific stages of the analysis.
 
-<img width="3352" height="1895" alt="Copy of Input folder (4)" src="https://github.com/user-attachments/assets/69d4d8cc-7dc1-4266-ada8-dce818350edc" />
+<img width="4278" height="2456" alt="SyBR_Workflow" src="https://github.com/user-attachments/assets/2705d6c8-d441-43bd-85d8-d14a0bb95163" />
+
 
 
 ## 🚀 Getting Started
