@@ -7,8 +7,8 @@
 # Set these to absolute paths if your inputs/outputs live outside the
 # workflow directory.  Leave them as "inputs" / "outputs" to use the
 # default folders relative to the workflow root.
-base_input_dir:  "/home/ajay/ajay_bhatia/sybr_update/Sybr/inputs2"
-base_output_dir: "/home/ajay/ajay_bhatia/sybr_update/Sybr/output2"
+base_input_dir:  "/home/pranjal.p/sybr/Sybr3/Sybr/inputs"
+base_output_dir: "/home/pranjal.p/sybr/Sybr3/Sybr/outputs"
 
 # ── Pipeline stages to run ──────────────────────────────────────────────────
 run_stages:
@@ -19,15 +19,15 @@ run_stages:
   enrichment_analysis: true
   chainNet_generation: true
   Ancestor_seq_recunstruction: true
-  hgt_overlap_analysis: false
+  hgt_overlap_analysis: true
 
 # ── Species / reference names ───────────────────────────────────────────────
-reference_name: "Adineta_vaga"
-reference_species: "vaga"
+reference_name: "Genus_sps1"
+reference_species: "sps1"
 
 # ── EBA parameters (user-facing) ───────────────────────────────────────────
 eba:
-  n: 5           # number of EBA iterations
-  r: "Adineta_vaga"  # reference species name
-  p: 300         # resolution parameter  # M
+  n: 2           # number of EBA iterations
+  r: "Genus_sps1"  # reference species name
+  p: 60         # resolution parameter  # M
 

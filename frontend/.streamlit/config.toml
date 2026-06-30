@@ -1,9 +1,9 @@
 [server]
 # Max upload size per file in MB (default is 200)
-maxUploadSize = 2048
+maxUploadSize = 3048
 
 # Max total message size in MB (for multiple files at once)
-maxMessageSize = 2048
+maxMessageSize = 3048
 
 # Enable XSRF protection
 enableXsrfProtection = true

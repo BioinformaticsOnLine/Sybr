@@ -142,6 +142,8 @@ def _run_pipeline(job_id: str):
                 cwd=str(SYBR_PIPELINE_DIR),
                 env={
                     **os.environ,
+                    "SYBR_PIPELINE_PATHS_CONFIG": str(PIPELINE_PATHS_YAML),
+                    "SYBR_RUN_CONFIG": str(config_path),
                     "PAGER": "cat",  # Prevent interactive pagers
                 },
                 start_new_session=True,  # Own process group for clean kill

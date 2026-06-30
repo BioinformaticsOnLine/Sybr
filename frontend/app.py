@@ -514,6 +514,8 @@ if page == "🧬 Submit Job":
             if scaf_file:
                 uploads["scaffolds"] = [scaf_file]
 
+    eba_p = 300  # default when EBA stage is off
+
     # ── Stage ② EBA Analysis ────────────────────────────────────────────
     if run_eba:
         st.markdown("### ② EBA Analysis Inputs")
@@ -523,9 +525,21 @@ if page == "🧬 Submit Job":
             eba_n = len(uploads.get("satsuma_alignments", []))
             st.metric("Genomes (n)", eba_n, help="Auto-counted from Satsuma alignments")
         with col_eba2:
-            eba_p = st.selectbox("Resolution (p)", [100, 300, 500], index=1, key="eba_p")
+            eba_p = st.number_input(
+                "Resolution (p)",
+                min_value=1,
+                value=300,
+                step=1,
+                key="eba_p",
+                help="Primary EBA resolution in kb — must match one of your synteny window sizes",
+            )
         with col_eba3:
             kegg_code = st.text_input("KEGG code", value="ko", key="kegg_code", help="Organism code or 'ko'")
+
+        st.caption(
+            "Set **Resolution (p)** to one of the window sizes (kb) from Advanced Synteny Parameters "
+            "(e.g. windows 30,60,90 → use p=60)."
+        )
 
         st.markdown("**EBA Classification File**")
         eba_file = st.file_uploader(
@@ -643,6 +657,13 @@ if page == "🧬 Submit Job":
             errors.append("Satsuma alignment files are required for Synteny Processing")
         if run_eba and not uploads.get("classification"):
             errors.append("classification.eba is required for EBA Analysis")
+        if run_eba and run_synteny:
+            window_kb = [w // 1000 for w in window_sizes]
+            if eba_p not in window_kb:
+                errors.append(
+                    f"EBA resolution (p={eba_p}) must match a synteny window size (kb): "
+                    f"{', '.join(str(w) for w in window_kb)}"
+                )
         if run_enrich and not uploads.get("annotation"):
             errors.append("protein_annotation.tsv is required for Enrichment Analysis")
         if run_chainnet and not uploads.get("lastz_alignments"):
@@ -739,6 +760,7 @@ elif page == "🔍 Check Job":
     with st.form("job_lookup_form"):
         lookup_id = st.text_input(
             "Job ID",
+            value=st.session_state.get("lookup_job_id", ""),
             placeholder="e.g.  sybr_20260429_054750_5a28d442",
             help="The Job ID shown to you after submitting the pipeline.",
         )
@@ -748,22 +770,22 @@ elif page == "🔍 Check Job":
         with col_refresh:
             refresh_clicked = st.form_submit_button("🔄 Refresh", use_container_width=True)
 
-    if lookup_id and (lookup_clicked or refresh_clicked):
-        job_data, code = api_get(f"/jobs/{lookup_id.strip()}")
+    if lookup_clicked or refresh_clicked:
+        st.session_state["lookup_job_id"] = lookup_id.strip()
+
+    active_lookup_id = st.session_state.get("lookup_job_id", "").strip()
+
+    if active_lookup_id:
+        job_data, code = api_get(f"/jobs/{active_lookup_id}")
         if code == 200:
             job = job_data  # single job object
             render_job_card(job, expanded=True)
 
-            # Auto-refresh while running
-            if job["status"] == "running":
-                st.caption("⏳ Auto-refreshing in 10 seconds...")
-                time.sleep(10)
-                st.rerun()
         elif code == 404:
             st.error("❌ Job not found. Please check the ID and try again.")
         else:
             st.error(f"Error: {job_data.get('detail', job_data)}")
-    elif not lookup_id and (lookup_clicked or refresh_clicked):
+    elif lookup_clicked or refresh_clicked:
         st.warning("Please enter a Job ID.")
     else:
         st.info("👆 Enter your Job ID above and click **Look Up Job** to check your results.")

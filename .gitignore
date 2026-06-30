@@ -5,6 +5,10 @@ outputs/
 inputs/
 jobs/
 
+*.db
+*.db-*
+api/sybr_api.db*
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
