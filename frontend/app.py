@@ -143,21 +143,21 @@ def api_post(endpoint, json_data=None):
     except Exception as e:
         return {"detail": str(e)}, 500
 
-
 def api_upload(endpoint, category, file_obj):
+    upload_timeout = int(os.getenv("SYBR_UPLOAD_TIMEOUT", "7200"))
     try:
+        file_obj.seek(0)
         r = requests.post(
             f"{API_BASE}{endpoint}",
             headers=api_headers(),
-            files={"file": (file_obj.name, file_obj, "application/octet-stream")},
+            files={"file": (file_obj.name, file_obj.read(), "application/octet-stream")},
             data={"category": category},
-            timeout=600,
+            timeout=(30, upload_timeout),
         )
         return r.json(), r.status_code
     except Exception as e:
         return {"detail": str(e)}, 500
-
-
+    
 def api_delete(endpoint):
     try:
         r = requests.delete(f"{API_BASE}{endpoint}", headers=api_headers(), timeout=10)
