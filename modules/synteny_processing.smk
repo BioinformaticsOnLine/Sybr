@@ -1118,7 +1118,15 @@ def _find_synteny_reference_fasta():
 # this file (and its log) if it were nested inside.
 SYNTENY_CHROM_SIZES = os.path.join(SYNTENY_RESULTS, "chrom_sizes.txt")
 
-if should_run_rule("synteny_processing"):
+# --annot and --sizes are optional for eh_plot-interective8.py, so only wire them in
+# when the underlying data actually exists (some input sets — e.g. a custom
+# base_input_dir without an enrichment_analysis/ or fasta/<reference_name> — won't have
+# them). Otherwise Snakemake would hard-fail the whole rule on a MissingInputException.
+_SYNTENY_ANNOT_FILE    = config.get("enrichment", {}).get("annotation_file", "")
+_HAS_SYNTENY_ANNOT     = bool(_SYNTENY_ANNOT_FILE) and os.path.isfile(_SYNTENY_ANNOT_FILE)
+_HAS_SYNTENY_REF_FASTA = bool(_find_synteny_reference_fasta())
+
+if should_run_rule("synteny_processing") and _HAS_SYNTENY_REF_FASTA:
     rule generate_synteny_chrom_sizes:
         """
         Generate a reference chromosome-sizes file (chr<TAB>size) with seqkit,
@@ -1162,8 +1170,8 @@ if should_run_rule("synteny_processing"):
         input:
             # Wait for reformatting to complete
             reformatting_marker = rules.reformat_combined_files.output.marker,
-            annot = config["enrichment"]["annotation_file"],
-            sizes = rules.generate_synteny_chrom_sizes.output.sizes,
+            annot = [_SYNTENY_ANNOT_FILE] if _HAS_SYNTENY_ANNOT else [],
+            sizes = rules.generate_synteny_chrom_sizes.output.sizes if _HAS_SYNTENY_REF_FASTA else [],
             script = os.path.join(workflow.basedir, config["scripts"], "eh_plot-interective8.py")
         output:
             # Create a single marker file for completion
@@ -1193,8 +1201,18 @@ if should_run_rule("synteny_processing"):
 
             annot_file="{input.annot}"
             sizes_file="{input.sizes}"
-            echo "Using annotation file: $annot_file" >> {log}
-            echo "Using chromosome sizes file: $sizes_file" >> {log}
+            echo "Using annotation file: ${{annot_file:-(none provided)}}" >> {log}
+            echo "Using chromosome sizes file: ${{sizes_file:-(none provided)}}" >> {log}
+
+            # --annot / --sizes are optional in eh_plot-interective8.py; only pass
+            # them through when the corresponding file is actually available
+            plot_extra_args=()
+            if [ -n "$annot_file" ]; then
+                plot_extra_args+=(--annot "$annot_file")
+            fi
+            if [ -n "$sizes_file" ]; then
+                plot_extra_args+=(--sizes "$sizes_file")
+            fi
 
             # Check if EBA directory exists
             eba_dir="{params.eba_dir}"
@@ -1264,8 +1282,7 @@ if should_run_rule("synteny_processing"):
 
                 if ! python3 "{input.script}" "$reformatted_file" \\
                     --chr "$chr_list" \\
-                    --annot "$annot_file" \\
-                    --sizes "$sizes_file" \\
+                    "${{plot_extra_args[@]}}" \\
                     --output "$res_dir/$plot_prefix" >> {log} 2>&1; then
                     echo "Error: Failed to generate combined plot for resolution $res" >&2 | tee -a {log}
                 else
