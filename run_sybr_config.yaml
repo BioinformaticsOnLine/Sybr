@@ -7,13 +7,8 @@
 # Set these to absolute paths if your inputs/outputs live outside the
 # workflow directory.  Leave them as "inputs" / "outputs" to use the
 # default folders relative to the workflow root.
-<<<<<<< HEAD
-base_input_dir:  "/home/ajay/ajay_bhatia/sybr_update/git2/Sybr/inputs"
-base_output_dir: "/home/ajay/ajay_bhatia/sybr_update/git2/Sybr/outputs"
-=======
 base_input_dir:  "/home/pranjal.p/sybr/Sybr3/Sybr/inputs"
 base_output_dir: "/home/pranjal.p/sybr/Sybr3/Sybr/outputs"
->>>>>>> 1fa173a5096c2054a8727f2266a68a186260cc94
 
 # ── Pipeline stages to run ──────────────────────────────────────────────────
 run_stages:

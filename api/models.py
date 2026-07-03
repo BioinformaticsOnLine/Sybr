@@ -68,6 +68,10 @@ class JobSubmitRequest(BaseModel):
         max_length=128,
         description="Human-readable job name",
     )
+    email: Optional[str] = Field(
+        default=None,
+        description="Submitter email address for notifications and admin tracking",
+    )
     run_stages: RunStages = Field(default_factory=RunStages)
     reference_name: str = Field(
         description="Full Genus_species reference name matching FASTA filename",
@@ -106,6 +110,7 @@ class JobProgress(BaseModel):
 class JobResponse(BaseModel):
     job_id: str
     job_name: Optional[str] = None
+    email: Optional[str] = None
     status: JobStatus
     progress: JobProgress = Field(default_factory=JobProgress)
     config: Optional[dict[str, Any]] = None
@@ -130,6 +135,7 @@ class JobResponse(BaseModel):
         return cls(
             job_id=row["id"],
             job_name=row.get("name"),
+            email=row.get("email"),
             status=JobStatus(row.get("status", "queued")),
             progress=JobProgress(
                 current_stage=row.get("current_stage"),

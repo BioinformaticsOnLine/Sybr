@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     id              TEXT    PRIMARY KEY,
     api_key_id      INTEGER REFERENCES api_keys(id),
     name            TEXT,
+    email           TEXT,
     status          TEXT    DEFAULT 'queued',
     config_json     TEXT    NOT NULL,
     input_dir       TEXT    NOT NULL,
@@ -91,9 +92,16 @@ def get_db():
 
 
 def init_db():
-    """Create tables if they don't exist."""
+    """Create tables if they don't exist, and run incremental migrations."""
     with get_db() as conn:
         conn.executescript(SCHEMA_SQL)
+        # Migration: add email column to existing databases that predate this field
+        existing_cols = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(jobs)").fetchall()
+        }
+        if "email" not in existing_cols:
+            conn.execute("ALTER TABLE jobs ADD COLUMN email TEXT")
 
 
 def now_utc() -> str:
@@ -111,14 +119,15 @@ def create_job(
     input_dir: str,
     output_dir: str,
     cores: int,
+    email: str | None = None,
 ) -> dict:
     """Insert a new job row and return it as a dict."""
     with get_db() as conn:
         conn.execute(
             """INSERT INTO jobs
-               (id, api_key_id, name, config_json, input_dir, output_dir, cores)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (job_id, api_key_id, name, config_json, input_dir, output_dir, cores),
+               (id, api_key_id, name, email, config_json, input_dir, output_dir, cores)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (job_id, api_key_id, name, email, config_json, input_dir, output_dir, cores),
         )
     return get_job(job_id)
 
