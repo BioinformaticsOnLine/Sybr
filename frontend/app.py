@@ -193,7 +193,7 @@ def status_badge(status):
 with st.sidebar:
     _logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.webp")
     if os.path.exists(_logo_path):
-        st.image(_logo_path, use_container_width=True)
+        st.image(_logo_path, width="stretch")
     else:
         st.markdown("# SyBR")
     st.markdown("**Multi-species synteny analysis and ancestral genome reconstruction toolkit**")
