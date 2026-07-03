@@ -94,6 +94,24 @@ html, body, [class*="css"] {
 .status-failed { background: #9b2c2c; color: #feb2b2; }
 .status-cancelled { background: #744210; color: #fefcbf; }
 
+/* ── Reduce top padding on main content area ── */
+.block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* ── Reduce top gap in sidebar ── */
+div[data-testid="stSidebar"] > div:first-child {
+    padding-top: 0.5rem !important;
+}
+
+/* Hide the default Streamlit header/toolbar to reclaim vertical space */
+header[data-testid="stHeader"] {
+    height: 0rem !important;
+    min-height: 0rem !important;
+    visibility: hidden;
+}
+
 div[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0f0c29, #1a1a2e);
 }
@@ -173,7 +191,11 @@ def status_badge(status):
 # ── Sidebar: Tool info, navigation, sample data, API key ─────────────────────
 
 with st.sidebar:
-    st.markdown("# SyBR")
+    _logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.webp")
+    if os.path.exists(_logo_path):
+        st.image(_logo_path, use_container_width=True)
+    else:
+        st.markdown("# SyBR")
     st.markdown("**Multi-species synteny analysis and ancestral genome reconstruction toolkit**")
     st.caption(
         "Automated modular workflow for conserved genomic blocks, evolutionary "
@@ -258,6 +280,8 @@ def render_job_card(job, expanded=True):
         with h1:
             st.markdown(f"**{jname}**")
             st.caption(f"`{jid}`")
+            if job.get("email"):
+                st.caption(f"✉️ {job['email']}")
         with h2:
             st.markdown(status_badge(jstatus), unsafe_allow_html=True)
             if job["progress"]["percent"] > 0:
@@ -374,22 +398,33 @@ if page == "🧬 Submit Job":
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Job Name ─────────────────────────────────────────────────────────
+    # ── Job Name & Email ─────────────────────────────────────────────────
     col_name, col_ref, col_sp = st.columns(3)
     with col_name:
         job_name = st.text_input("Job Name", value="sybr_analysis", help="A label for this run")
     with col_ref:
         reference_name = st.text_input(
             "Reference Name (Genus_species)",
-            value="Adineta_vaga",
+            value="Genus_sps1",
             help="Must match the FASTA filename (e.g. Adineta_vaga → Adineta_vaga.fa)",
         )
     with col_sp:
         reference_species = st.text_input(
             "Reference Species (short)",
-            value="vaga",
+            value="sps1",
             help="Short species name used internally by EBA",
         )
+
+    col_email, _ = st.columns([2, 1])
+    with col_email:
+        submitter_email = st.text_input(
+            "✉️ Your Email Address",
+            placeholder="e.g. user@institution.edu",
+            help="Optional — used for admin tracking and future job-completion notifications.",
+            key="submitter_email",
+        )
+        if submitter_email and ("@" not in submitter_email or "." not in submitter_email.split("@")[-1]):
+            st.warning("Please enter a valid email address.", icon="⚠️")
 
     st.divider()
 
@@ -453,6 +488,30 @@ if page == "🧬 Submit Job":
 
     st.divider()
 
+    # ── Synteny parameters (show directly under Pipeline Stages) ────────────
+
+    if run_synteny:
+        with st.expander("⚙️ Advanced Synteny Parameters", expanded=True):
+            c_w, c_s = st.columns(2)
+            with c_w:
+                window_input = st.text_input(
+                    "Window sizes (comma-separated, in kb)",
+                    value="30,60,90",
+                    key="windows",
+                )
+            with c_s:
+                step_size = st.number_input("Step size (kb)", value=3, min_value=1, key="step")
+
+        try:
+            window_sizes = [int(w.strip()) * 1000 for w in window_input.split(",")]
+        except ValueError:
+            window_sizes = [30000, 60000, 90000]
+
+        cores = 6
+    else:
+        window_sizes = [30000, 60000, 90000]
+        step_size = 3
+        cores = 6
     # ══════════════════════════════════════════════════════════════════════
     #  FILE UPLOADS — conditional on selected stages
     # ══════════════════════════════════════════════════════════════════════
@@ -514,13 +573,13 @@ if page == "🧬 Submit Job":
             if scaf_file:
                 uploads["scaffolds"] = [scaf_file]
 
-    eba_p = 300  # default when EBA stage is off
+    eba_p = 60  # default when EBA stage is off
 
     # ── Stage ② EBA Analysis ────────────────────────────────────────────
     if run_eba:
         st.markdown("### ② EBA Analysis Inputs")
 
-        col_eba1, col_eba2, col_eba3 = st.columns(3)
+        col_eba1, col_eba2 = st.columns(2)
         with col_eba1:
             eba_n = len(uploads.get("satsuma_alignments", []))
             st.metric("Genomes (n)", eba_n, help="Auto-counted from Satsuma alignments")
@@ -528,14 +587,12 @@ if page == "🧬 Submit Job":
             eba_p = st.number_input(
                 "Resolution (p)",
                 min_value=1,
-                value=300,
+                value=60,
                 step=1,
                 key="eba_p",
                 help="Primary EBA resolution in kb — must match one of your synteny window sizes",
             )
-        with col_eba3:
-            kegg_code = st.text_input("KEGG code", value="ko", key="kegg_code", help="Organism code or 'ko'")
-
+        
         st.caption(
             "Set **Resolution (p)** to one of the window sizes (kb) from Advanced Synteny Parameters "
             "(e.g. windows 30,60,90 → use p=60)."
@@ -614,32 +671,6 @@ if page == "🧬 Submit Job":
         if hgt_file:
             uploads["hgt"] = [hgt_file]
 
-    st.divider()
-
-    # ── Synteny parameters ───────────────────────────────────────────────
-    if run_synteny:
-        with st.expander("⚙️ Advanced Synteny Parameters", expanded=False):
-            c_w, c_s, c_c = st.columns(3)
-            with c_w:
-                window_input = st.text_input(
-                    "Window sizes (comma-separated, in kb)",
-                    value="100,300,500",
-                    key="windows",
-                )
-            with c_s:
-                step_size = st.number_input("Step size (kb)", value=30, min_value=1, key="step")
-            with c_c:
-                cores = st.number_input("CPU cores", value=4, min_value=1, max_value=20, key="cores")
-
-        try:
-            window_sizes = [int(w.strip()) * 1000 for w in window_input.split(",")]
-        except ValueError:
-            window_sizes = [100000, 300000, 500000]
-    else:
-        window_sizes = [100000, 300000, 500000]
-        step_size = 30
-        cores = 4
-
     # ══════════════════════════════════════════════════════════════════════
     #  SUBMIT BUTTON
     # ══════════════════════════════════════════════════════════════════════
@@ -680,8 +711,10 @@ if page == "🧬 Submit Job":
 
         # ── Step 1: Create Job ───────────────────────────────────────────
         eba_n_val = len(uploads.get("satsuma_alignments", [])) if run_eba else 5
+        _email = submitter_email.strip() if submitter_email and "@" in submitter_email else None
         payload = {
             "job_name": job_name,
+            "email": _email,
             "run_stages": {
                 "synteny_processing": run_synteny,
                 "eba_analysis": run_eba,
@@ -697,7 +730,6 @@ if page == "🧬 Submit Job":
                 "r": reference_name,
                 "p": eba_p if run_eba else 300,
             },
-            "getenrich": {"r": kegg_code if run_eba else "ko"},
             "window_sizes": window_sizes,
             "step_size": step_size * 1000,
             "cores": cores,
@@ -846,6 +878,50 @@ elif page == "📋 All Jobs (Admin)":
 
     for job in jobs:
         render_job_card(job, expanded=False)
+
+    # ── Email Summary ─────────────────────────────────────────────────────────
+    st.divider()
+    with st.expander("✉️ Email Summary — Submitters", expanded=False):
+        import pandas as _pd
+
+        email_rows = [
+            {
+                "email": j.get("email") or "—",
+                "job_name": j.get("job_name") or "—",
+                "status": j["status"],
+                "created_at": fmt_time(j.get("created_at")),
+                "job_id": j["job_id"],
+            }
+            for j in jobs
+        ]
+        email_df = _pd.DataFrame(email_rows)
+
+        counts = (
+            email_df[email_df["email"] != "—"]
+            .groupby("email")
+            .agg(jobs_submitted=("job_id", "count"))
+            .reset_index()
+            .sort_values("jobs_submitted", ascending=False)
+        )
+
+        col_summary, col_detail = st.columns([1, 2])
+        with col_summary:
+            st.markdown("**Jobs per email**")
+            if counts.empty:
+                st.info("No emails recorded yet.")
+            else:
+                st.dataframe(counts, hide_index=True, use_container_width=True)
+        with col_detail:
+            st.markdown("**Per-job email log**")
+            st.dataframe(
+                email_df[["email", "job_name", "status", "created_at", "job_id"]],
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "job_id": st.column_config.TextColumn("Job ID", width="medium"),
+                    "email": st.column_config.TextColumn("Email", width="medium"),
+                },
+            )
 
     # Auto-refresh for running jobs
     if any(j["status"] == "running" for j in jobs):

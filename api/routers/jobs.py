@@ -82,6 +82,7 @@ async def create_job(
         input_dir=str(job_dir / "inputs"),
         output_dir=str(job_dir / "outputs"),
         cores=request.cores,
+        email=request.email,
     )
 
     db.add_job_log(job_id, "INFO", f"Job created by key '{key['name']}'")
