@@ -10,8 +10,11 @@ import tempfile
 # Snakemake does a SHALLOW merge of top-level keys, so dict-valued keys like
 # "eba:" that appear in both files would be overwritten entirely.
 # We fix this below with an explicit deep-merge after both files are loaded.
-configfile: "pipeline_paths.yaml"
-configfile: "run_sybr_config.yaml"
+_PATHS_CONFIG_FILE = os.getenv("SYBR_PIPELINE_PATHS_CONFIG", "pipeline_paths.yaml")
+_RUN_CONFIG_FILE = os.getenv("SYBR_RUN_CONFIG", "run_sybr_config.yaml")
+
+configfile: _PATHS_CONFIG_FILE
+configfile: _RUN_CONFIG_FILE
 
 # Deep-merge any top-level dicts that are intentionally split across both files.
 # pipeline_paths.yaml is loaded first so run_sybr_config.yaml wins on conflict.
@@ -41,7 +44,7 @@ def _deep_merge_from_files(cfg, *yaml_files):
         cfg = _deep_merge(cfg, layer)
     return cfg
 
-config = _deep_merge_from_files(config, "pipeline_paths.yaml", "run_sybr_config.yaml")
+config = _deep_merge_from_files(config, _PATHS_CONFIG_FILE, _RUN_CONFIG_FILE)
 
 # Rebase all "inputs/..." and "outputs/..." paths in the config using
 # base_input_dir and base_output_dir from run_sybr_config.yaml.

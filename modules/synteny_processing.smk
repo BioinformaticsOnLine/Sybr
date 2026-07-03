@@ -1099,11 +1099,72 @@ if should_run_rule("synteny_processing"):
             """
 
 
+def _find_synteny_reference_fasta():
+    """
+    Locate the reference FASTA in satsuma_align.fasta_dir (inputs/fasta) using
+    reference_name from run_sybr_config.yaml. Tries extensions: .fa, .fna, .fasta
+    """
+    fasta_dir = config.get("satsuma_align", {}).get("fasta_dir", "")
+    ref_name  = config.get("reference_name", "")
+    for ext in (".fa", ".fna", ".fasta"):
+        candidate = os.path.join(fasta_dir, ref_name + ext)
+        if os.path.isfile(candidate):
+            return candidate
+    return ""
+
+# NOTE: this file must live OUTSIDE os.path.join(SYNTENY_RESULTS, config["out_final"]) —
+# that path is declared as a directory() output by rule make_eba_format1, and Snakemake
+# wipes/recreates directory() outputs before running their owning job, which would delete
+# this file (and its log) if it were nested inside.
+SYNTENY_CHROM_SIZES = os.path.join(SYNTENY_RESULTS, "chrom_sizes.txt")
+
+if should_run_rule("synteny_processing"):
+    rule generate_synteny_chrom_sizes:
+        """
+        Generate a reference chromosome-sizes file (chr<TAB>size) with seqkit,
+        for use as the --sizes argument of eh_plot-interective8.py.
+        """
+        input:
+            ref_fasta = _find_synteny_reference_fasta()
+        output:
+            sizes = SYNTENY_CHROM_SIZES
+        params:
+            ref_name = config.get("reference_name", "")
+        log:
+            os.path.join(SYNTENY_RESULTS, "logs", "generate_synteny_chrom_sizes.log")
+        shell:
+            """
+            set -euo pipefail
+            mkdir -p "$(dirname {output.sizes})"
+            mkdir -p "$(dirname {log})"
+
+            echo "=== Generating chromosome sizes for synteny plots ===" > {log}
+            echo "Reference FASTA : {input.ref_fasta}" >> {log}
+            echo "Reference name  : {params.ref_name}"  >> {log}
+
+            if ! command -v seqkit &> /dev/null; then
+                echo "Error: seqkit not found. Please install seqkit." >&2 | tee -a {log}
+                exit 1
+            fi
+
+            seqkit fx2tab --length --name "{input.ref_fasta}" > "{output.sizes}" 2>> {log}
+
+            if [ ! -s "{output.sizes}" ]; then
+                echo "Error: chromosome sizes file is empty" >&2 | tee -a {log}
+                exit 1
+            fi
+
+            echo "Wrote $(wc -l < "{output.sizes}") entries to {output.sizes}" >> {log}
+            """
+
 if should_run_rule("synteny_processing"):
     rule generate_synteny_plots:
         input:
             # Wait for reformatting to complete
-            reformatting_marker = rules.reformat_combined_files.output.marker
+            reformatting_marker = rules.reformat_combined_files.output.marker,
+            annot = config["enrichment"]["annotation_file"],
+            sizes = rules.generate_synteny_chrom_sizes.output.sizes,
+            script = os.path.join(workflow.basedir, config["scripts"], "eh_plot-interective8.py")
         output:
             # Create a single marker file for completion
             marker = touch(os.path.join(SYNTENY_RESULTS, ".plots_generated_done"))
@@ -1118,27 +1179,22 @@ if should_run_rule("synteny_processing"):
 
             echo "Starting synteny plot generation..." > {log}
 
-            # First, check if R and the correct package are available
-            if ! command -v Rscript &> /dev/null; then
-                echo "Error: Rscript not found. Please install R." >&2 | tee -a {log}
+            # Check if python3 is available
+            if ! command -v python3 &> /dev/null; then
+                echo "Error: python3 not found." >&2 | tee -a {log}
                 exit 1
             fi
 
-            # Try to load syntenyPlotteR package (which you have installed)
-            echo "Checking for syntenyPlotteR package..." >> {log}
-            R_SCRIPT_CHECK="
-            if (!require('syntenyPlotteR', quietly = TRUE)) {{
-                cat('Error: syntenyPlotteR package not installed\\n')
-                cat('Please install with: install.packages(\\\"syntenyPlotteR\\\") or BiocManager::install(\\\"syntenyPlotteR\\\")\\n')
-                quit(save = 'no', status = 1)
-            }}
-            cat('syntenyPlotteR package found successfully\\n')
-            "
-
-            if ! echo "$R_SCRIPT_CHECK" | Rscript - 2>> {log}; then
-                echo "Error: syntenyPlotteR package not installed in R." >&2 | tee -a {log}
+            # Check if the plotting script exists
+            if [ ! -f "{input.script}" ]; then
+                echo "Error: Plotting script not found at {input.script}" >&2 | tee -a {log}
                 exit 1
             fi
+
+            annot_file="{input.annot}"
+            sizes_file="{input.sizes}"
+            echo "Using annotation file: $annot_file" >> {log}
+            echo "Using chromosome sizes file: $sizes_file" >> {log}
 
             # Check if EBA directory exists
             eba_dir="{params.eba_dir}"
@@ -1198,66 +1254,33 @@ if should_run_rule("synteny_processing"):
                 total_lines=$(wc -l < "$reformatted_file" 2>/dev/null || echo "0")
                 echo "Total data points in $reformatted_file: $total_lines" >> {log}
 
-                # Generate plot for each chromosome
+                # Build a comma-separated chromosome list and generate a single
+                # multi-tab plot for the whole resolution
+                chr_list=$(echo "$chromosomes" | paste -sd, -)
+                echo "Generating combined plot for chromosomes $chr_list in resolution $res..." >> {log}
+
                 res_plots=0
-                for chr in $chromosomes; do
-                    echo "Generating plot for chromosome $chr in resolution $res..." >> {log}
+                plot_prefix="synteny_plot_${{res}}"
 
-                    R_PLOT_SCRIPT="
-                    library(syntenyPlotteR)
-
-                    # Try to call the plotting function - adjust function name if needed
-                    # If the function name is different, you may need to use syntenyPlotteR::function_name
-                    tryCatch({{
-                        draw.eh(
-                          'synteny_plot_${{res}}_chr${{chr}}',
-                          c($chr),
-                          '$reformatted_file',
-                          directory = '$res_dir',
-                          fileformat = 'pdf',
-                          colour = 'blue',
-                          inverted.colour = 'blue',
-                          w = 8,
-                          h = 12,
-                          ps = 100
-                        )
-                    }}, error = function(e) {{
-                        # Try alternative function names if draw.eh doesn't work
-                        cat('draw.eh failed, trying alternative function names...\\n')
-                        # Add alternative function calls here if needed
-                        stop(e)
-                    }})
-
-                    cat('Generated plot: synteny_plot_${{res}}_chr${{chr}}.pdf\\n')
-                    "
-
-                    if ! echo "$R_PLOT_SCRIPT" | Rscript - 2>> {log}; then
-                        echo "Error: Failed to generate plot for chromosome $chr in resolution $res" >&2 | tee -a {log}
-                        echo "Trying alternative approach..." >> {log}
-
-                        # Try a simpler approach
-                        R_ALTERNATIVE="
-                        library(syntenyPlotteR)
-                        cat('Available functions in syntenyPlotteR:', ls('package:syntenyPlotteR'), '\\n')
-                        "
-                        echo "$R_ALTERNATIVE" | Rscript - 2>> {log}
-
-                        # Continue to next chromosome instead of exiting
-                        continue
-                    fi
-
+                if ! python3 "{input.script}" "$reformatted_file" \\
+                    --chr "$chr_list" \\
+                    --annot "$annot_file" \\
+                    --sizes "$sizes_file" \\
+                    --output "$res_dir/$plot_prefix" >> {log} 2>&1; then
+                    echo "Error: Failed to generate combined plot for resolution $res" >&2 | tee -a {log}
+                else
                     # Verify plot was created
-                    plot_file="$res_dir/synteny_plot_${{res}}_chr${{chr}}.pdf"
+                    plot_file="$res_dir/${{plot_prefix}}.html"
                     if [ -f "$plot_file" ]; then
                         echo "Successfully created: $plot_file" >> {log}
-                        res_plots=$((res_plots + 1))
+                        res_plots=1
                         total_plots=$((total_plots + 1))
                     else
                         echo "Warning: Plot file not created: $plot_file" >> {log}
                     fi
-                done
+                fi
 
-                echo "Generated $res_plots plots for resolution $res" >> {log}
+                echo "Generated $res_plots plot(s) for resolution $res" >> {log}
 
                 # Create completion marker for this resolution
                 marker_file="$res_dir/.plots_${{res}}_done"
@@ -1272,7 +1295,7 @@ if should_run_rule("synteny_processing"):
 
             # List all generated plot files
             echo -e "\nGenerated plot files:" >> {log}
-            find "$eba_dir" -name "synteny_plot_*_chr*.pdf" -type f | while read plot; do
+            find "$eba_dir" -name "synteny_plot_*.html" -type f | while read plot; do
                 echo "  ✓ $plot" >> {log}
             done || echo "  No plot files found" >> {log}
 
