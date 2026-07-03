@@ -707,14 +707,34 @@ def build_checks(cfg):
         ))
 
     # all_sequence_lengths.txt + 3-column format
+    # This file is optional when FASTA files are present — the pipeline will
+    # auto-generate it via genome_length_maker.sh before synteny processing.
     if run_synteny:
         seq_len = cfg.get("sequence_lengths_file",
                           p("synteny_processing", "all_sequence_lengths.txt"))
-        items.append(Item(
-            "synteny_processing/all_sequence_lengths.txt",
-            seq_len, "file", "synteny_processing",
-            fmt="sequence_lengths"
-        ))
+        fasta_dir = cfg.get("satsuma_align", {}).get("fasta_dir", p("fasta"))
+        _has_fastas = os.path.isdir(fasta_dir) and any(
+            glob.glob(os.path.join(fasta_dir, f"*{ext}"))
+            for ext in (".fa", ".fna", ".fasta")
+        )
+        if os.path.isfile(seq_len):
+            # File already exists — validate its format
+            items.append(Item(
+                "synteny_processing/all_sequence_lengths.txt",
+                seq_len, "file", "synteny_processing",
+                fmt="sequence_lengths"
+            ))
+        elif _has_fastas:
+            # File missing but FASTAs are present → will be auto-generated; skip hard check
+            print(f"  {CYAN}ℹ{NC}  synteny_processing/all_sequence_lengths.txt not found "
+                  f"— will be auto-generated from FASTA files via genome_length_maker.sh")
+        else:
+            # Neither the file nor FASTAs exist → hard failure
+            items.append(Item(
+                "synteny_processing/all_sequence_lengths.txt",
+                seq_len, "file", "synteny_processing",
+                fmt="sequence_lengths"
+            ))
 
     # classification.eba — existence only (EBA-tool-specific binary/text format)
     if run_eba:
