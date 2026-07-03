@@ -1,4 +1,4 @@
-name: sybr
+name: sybr2
 channels:
   - jitendralab
   - conda-forge

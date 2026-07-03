@@ -3,7 +3,11 @@
 logs/
 outputs/
 inputs/
+jobs/
 
+*.db
+*.db-*
+api/sybr_api.db*
 
 # Marimo
 marimo/_static/
@@ -17,6 +21,12 @@ __marimo__/
 # IPython
 .profile_default/
 ipython_config.py
+
+# Python bytecode / caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 input/
 .snakemake
